@@ -702,6 +702,17 @@ svg,canvas{width:100%;display:block;margin-top:18px}
 .st li span{margin-left:auto;color:var(--dim);font-weight:400;font-size:clamp(14px,4.4vw,20px)}
 .st i{width:16px;height:16px;border-radius:50%;background:var(--line);flex:none}
 .st i.ok{background:var(--ok)}.st i.bad{background:#e5484d}.st i.wait{background:#3d5afe}
+#training .sc{height:100%;display:flex;flex-direction:column;max-width:520px}
+.hero{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
+.hero .huge{font-size:clamp(84px,min(32vw,20vh),210px);margin:0}
+.hero .sub{font-size:clamp(15px,2.4vh,22px)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;flex:1.15;min-height:0;border-top:1px solid var(--line)}
+.tiles>div{display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--line)}
+.tiles>div:nth-child(odd){border-right:1px solid var(--line)}
+.tiles b{font-size:clamp(38px,min(14vw,8.5vh),84px);font-weight:800;line-height:1.05}
+.tiles span{color:var(--dim);font-size:clamp(13px,2vh,18px);margin-top:4px}
+.pausebox{flex:1.15;display:flex;flex-direction:column;justify-content:center;border-top:1px solid var(--line)}
+.pausebox .big{font-size:clamp(56px,min(20vw,12vh),120px)}
 .hint{position:fixed;bottom:12px;left:0;right:0;text-align:center;color:var(--dim);font-size:13px;transition:opacity .6s}
 """
 
@@ -730,9 +741,10 @@ async function live(){
   S=await r.json()}catch(e){S={}}
  const pause=!S.active&&S.pause_left!=null;
  $('tr-t').textContent=S.active||!S.session?T.training:T.pause;
- $('tr-dist').textContent=(S.dist||0).toLocaleString(T.locale);
- $('tr-time').textContent=mmss(S.elapsed);$('tr-spm').textContent=S.spm||0;$('tr-w').textContent=S.watts||0;
- $('tr-pace').textContent=S.pace?mmss(S.pace)+' /500 m':'';
+ const dt=(S.dist||0).toLocaleString(T.locale),de=$('tr-dist');de.textContent=dt;
+ de.style.fontSize=dt.length>4?'min('+(128/dt.length).toFixed(1)+'vw,'+(80/dt.length).toFixed(1)+'vh,210px)':'';
+ const tm=mmss(S.elapsed);$('tr-time').textContent=tm;$('tr-time').style.fontSize=tm.length>5?'min('+(70/tm.length).toFixed(1)+'vw,'+(42/tm.length).toFixed(1)+'vh,84px)':'';$('tr-spm').textContent=S.spm||0;$('tr-w').textContent=S.watts||0;
+ $('tr-pace').textContent=S.pace?mmss(S.pace):'–';
  $('tr-pause').style.display=pause?'':'none';$('tr-row').style.display=pause?'none':'';
  if(pause)$('tr-left').textContent=mmss(S.pause_left);
  if(S.curve){$('fc-path').setAttribute('points',S.curve.map((v,i)=>(i*300/(S.curve.length-1)).toFixed(1)+','+(112-v*1.05).toFixed(1)).join(' '));
@@ -829,11 +841,12 @@ def screen_page():
 <div class="top"><a href="/live">‹ rowbox</a><div class="dots" id="dots"></div></div>
 <main class="deck" id="deck">
 <section class="slide" id="training"><div class="sc"><div class="t" id="tr-t">{L("Training")}</div>
-<div class="huge" id="tr-dist">0</div><div class="sub">{L("Meter")}</div>
-<div class="row3" id="tr-row"><div><b id="tr-time">0:00</b><span>{L("Zeit")}</span></div>
-<div><b id="tr-spm">0</b><span>/min</span></div><div><b id="tr-w">0</b><span>{L("Watt")}</span></div></div>
-<div id="tr-pause" style="display:none;margin-top:24px"><div class="lab">{L("Automatisches Ende in")}</div>
-<div class="big warn" id="tr-left"></div></div><div class="sub" id="tr-pace" style="margin-top:18px"></div></div></section>
+<div class="hero"><div class="huge" id="tr-dist">0</div><div class="sub">{L("Meter")}</div></div>
+<div class="tiles" id="tr-row"><div><b id="tr-time">0:00</b><span>{L("Zeit")}</span></div>
+<div><b id="tr-pace">–</b><span>/500 m</span></div>
+<div><b id="tr-spm">0</b><span>{L("Schläge/min")}</span></div><div><b id="tr-w">0</b><span>{L("Watt")}</span></div></div>
+<div class="pausebox" id="tr-pause" style="display:none"><div class="lab">{L("Automatisches Ende in")}</div>
+<div class="big warn" id="tr-left"></div></div></div></section>
 <section class="slide" id="force"><div class="sc"><div class="t">{L("Kraftkurve")}</div>
 <svg viewBox="0 -4 300 120"><line x1="0" y1="112" x2="300" y2="112" stroke="#3c424c" stroke-width="2"/>
 <polyline id="fc-path" fill="none" stroke="#ff5a1f" stroke-width="4" stroke-linejoin="round" points=""/></svg>
