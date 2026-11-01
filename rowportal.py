@@ -719,7 +719,9 @@ border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;
 .tip button{align-self:flex-end;background:var(--sig);color:#000;border:0;border-radius:10px;padding:8px 18px;font-weight:700}
 .dots{display:flex;gap:7px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
 .dots i.on{background:var(--fg)}
-.deck{display:flex;height:100vh;height:100dvh;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+/* Fest ueber den ganzen Bildschirm: in der iPhone-Web-App ist 100vh/100dvh um die Statusleiste zu kurz */
+.deck{position:fixed;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none}
+html,body{overflow:hidden;overscroll-behavior:none}
 .deck::-webkit-scrollbar{display:none}
 .slide{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;flex-direction:column;
 align-items:center;justify-content:center;padding:calc(52px + var(--st)) 20px calc(60px + env(safe-area-inset-bottom))}
