@@ -23,6 +23,9 @@
 - Phone display in landscape (phone and tablet): own layouts instead of the squeezed portrait ones; the journey becomes a cockpit with the 3D river across the whole screen and glass panels on top (route and progress, next stage and destination, five live values: metres, pace, stroke rate, watts, time; weather and a bigger map); training, force curve, pacer and status are laid out side by side; round arrows at the edges instead of the swipe bar
 - Phone display: the screen stays on while the display is open (Wake Lock where allowed, otherwise a silent looping mini video, so it also works in Safari over plain http)
 - 3D view: lower resolution on large screens to stay smooth; subtler wake
+- Phone display: full-screen button (iPad, Android, desktop); on the iPhone it explains "Add to Home Screen", which starts Rowbox without bars like an app (icon and web app manifest included)
+- Phone display: compact cockpit for flat landscape screens (phone with browser bars), so the panels leave the river free
+- 3D view: resolution follows the measured frame rate (older iPads render coarser and stay smooth, fast phones get full sharpness); the 3D files are no longer cached for a day, so updates show up at once
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2

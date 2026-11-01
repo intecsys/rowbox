@@ -832,6 +832,7 @@ export function start(el, state) {
   }
   const pose = { seat: 0, torso: 0, oar: 0, lift: 0 };
   const cam = { fx: 0, fz: -1 };
+  const PR = [2, 1.5, 1.25, 1, 0.8], perf = { t: 0, n: 0, level: null };
   let wide = false;
 
   function frame(now) {
@@ -903,8 +904,17 @@ export function start(el, state) {
     camera.position.set(x - fx * back - fz * 0.25, ch, z - fz * back + fx * 0.25);
     camera.lookAt(x + fx * 40, ly, z + fz * 40);
     const w = el.clientWidth, h = el.clientHeight;
-    // Grosse Flaechen (Tablet, Querformat) mit etwas weniger Aufloesung, damit es fluessig bleibt
-    const pr = Math.min(window.devicePixelRatio || 1, w * h > 700000 ? 1.25 : w * h > 350000 ? 1.5 : 2);
+    // Aufloesung nach Leistung: misst die Bildrate und regelt die Pixeldichte nach (aeltere Geraete
+    // rechnen groeber, schnelle Handys bekommen volle Schaerfe). Startwert nach Flaechengroesse.
+    perf.t += dt; perf.n++;
+    if (perf.level == null) perf.level = w * h > 700000 ? 2 : w * h > 350000 ? 1 : 0;
+    if (perf.t > 2.5) {
+      const avg = perf.t / perf.n;
+      if (avg > 1 / 38 && perf.level < PR.length - 1) perf.level++;
+      else if (avg < 1 / 57 && perf.level > 0 && (perf.good = (perf.good || 0) + 1) > 2) { perf.level--; perf.good = 0; }
+      perf.t = perf.n = 0;
+    }
+    const pr = Math.min(window.devicePixelRatio || 1, PR[perf.level]);
     if (renderer.getPixelRatio() !== pr) renderer.setPixelRatio(pr);
     if (renderer.domElement.width !== Math.round(w * pr) || renderer.domElement.height !== Math.round(h * pr)) {
       renderer.setSize(w, h, false);

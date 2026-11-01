@@ -64,7 +64,9 @@ VIEW_CHOICES = [("status", "Status"), ("training", "Training"), ("force", "Kraft
 lock = threading.Lock()
 SESSIONS = {}            # Anmelde-Token -> Ablaufzeit (nur im Speicher)
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
-STATIC_FILES = {"three.module.min.js": "text/javascript", "river3d.js": "text/javascript"}
+STATIC_FILES = {"three.module.min.js": "text/javascript", "river3d.js": "text/javascript",
+                "icon-180.png": "image/png", "icon-512.png": "image/png", "manifest.webmanifest": "application/manifest+json"}
+STATIC_LONG = {"three.module.min.js", "icon-180.png", "icon-512.png"}   # aendert sich praktisch nie
 STATIC_CACHE = {}
 SESSION_DAYS = 30
 
@@ -703,6 +705,12 @@ font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-hig
 .top{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
 padding:10px 16px;z-index:2;font-size:14px;color:var(--dim)}
 .top a{color:var(--dim);text-decoration:none}
+.tr{display:flex;align-items:center;gap:14px}
+.fsb{background:none;border:0;color:var(--dim);padding:2px;display:flex;cursor:pointer}.fsb svg{width:20px;height:20px;margin:0}
+.tip{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;width:min(90vw,420px);background:var(--card);
+border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;text-align:left;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.tip[hidden]{display:none}.tip b{font-size:18px}.tip span{color:var(--dim);line-height:1.4}
+.tip button{align-self:flex-end;background:var(--sig);color:#000;border:0;border-radius:10px;padding:8px 18px;font-weight:700}
 .dots{display:flex;gap:7px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
 .dots i.on{background:var(--fg)}
 .deck{display:flex;height:100svh;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
@@ -856,6 +864,22 @@ margin:0;padding:6px 16px;border-radius:0 0 14px 14px;border-top:1px solid var(-
 #journey .r3-credit{left:var(--m)!important;bottom:calc(var(--lb) + var(--m) + 6px)!important}
 .top{text-shadow:0 1px 3px rgba(0,0,0,.6)}
 }
+/* Flaches Querformat (Handy mit Browserleisten): kompaktes Cockpit, Szene bleibt frei */
+@media (orientation:landscape) and (max-height:520px){
+.top{padding:6px 14px}
+#journey .sc.full{--lb:clamp(52px,19vh,72px);--m:max(8px,env(safe-area-inset-left))}
+#journey .jtop{top:30px;width:min(34vw,380px);padding:5px 12px 7px;border-radius:10px}
+#journey .jhead .big{font-size:clamp(16px,5vh,22px)}#journey .jhead span{font-size:12px}#journey .prog{height:4px;margin-top:4px}
+#journey .live3 b{font-size:clamp(18px,8vh,30px)}#journey .live3 span{font-size:11px}
+#journey #jr-stage{width:min(30vw,300px);padding:6px 12px;bottom:calc(var(--lb) + var(--m) + 6px + 30px)}
+#journey #jr-stage .lab{display:none}
+#journey #jr-stage .big{font-size:clamp(16px,6vh,26px)}#journey #jr-stage .r2{font-size:clamp(13px,4.4vh,18px)}
+#journey .goal{width:min(30vw,300px);height:30px;padding:2px 12px;bottom:calc(var(--lb) + var(--m) + 6px)}
+#journey .goal .r2{font-size:13px}
+#journey .r3-wx{top:30px!important}
+#journey .r3-map{top:30px!important;width:clamp(60px,22vh,90px)!important;height:clamp(60px,22vh,90px)!important}
+.swipe button{width:36px;height:36px}
+}
 """
 
 SCREEN_JS = r"""
@@ -981,6 +1005,14 @@ async function awake(){if(document.hidden)return;
 document.addEventListener('visibilitychange',awake);
 for(const ev of['touchend','click'])addEventListener(ev,awake,{once:true});
 awake();
+// Vollbild: echte Fullscreen-API (iPad, Android, Desktop); auf dem iPhone geht das nur als Web-App vom Home-Bildschirm
+(function(){const b=$('fs'),de=document.documentElement,standalone=navigator.standalone||matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+ const can=de.requestFullscreen||de.webkitRequestFullscreen,iphone=/iPhone|iPod/.test(navigator.userAgent);
+ if(standalone||(!can&&!iphone))return;b.hidden=false;
+ b.onclick=()=>{if(can){const fe=document.fullscreenElement||document.webkitFullscreenElement;
+   if(fe)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else{const r=can.call(de);if(r&&r.catch)r.catch(()=>{})}}
+  else $('fstip').hidden=false};
+ $('fsok').onclick=()=>{$('fstip').hidden=true}})();
 var R3=null,R3try=false,JSHOW=null;
 function scene3d(){
  const on=slides[cur]&&slides[cur].id=='journey'&&!document.hidden&&(!JSHOW||JSHOW.includes('scene'));
@@ -1067,8 +1099,14 @@ def screen_page():
     body = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rowbox"><link rel="apple-touch-icon" href="/static/icon-180.png">
+<link rel="manifest" href="/static/manifest.webmanifest">
 <title>Rowbox – {L("Anzeige")}</title><style>{SCREEN_CSS}</style></head><body>
-<div class="top"><a href="/live">‹ rowbox</a><div class="dots" id="dots"></div></div>
+<div class="top"><a href="/live">‹ rowbox</a><div class="tr"><button id="fs" class="fsb" aria-label="{L("Vollbild")}" hidden>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+<div class="dots" id="dots"></div></div></div>
+<div class="tip" id="fstip" hidden><b>{L("Vollbild auf dem iPhone")}</b><span>{L("In Safari auf Teilen tippen und „Zum Home-Bildschirm“ wählen. Rowbox startet dann ohne Leisten, wie eine App.")}</span><button id="fsok">OK</button></div>
 <main class="deck" id="deck">
 <section class="slide" id="training"><div class="sc full"><div class="t" id="tr-t">{L("Training")}</div>
 <div class="hero"><div class="huge" id="tr-dist">0</div><div class="sub">{L("Meter")}</div></div>
@@ -1796,7 +1834,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "public, max-age=86400")
+        # three.js und Icons lange cachen; 3D-Szene und Strecken nach jedem Update sofort neu (ETag, meist 304)
+        self.send_header("Cache-Control", "public, max-age=86400" if name in STATIC_LONG else "no-cache")
         self.send_header("ETag", tag)
         if use_gz:
             self.send_header("Content-Encoding", "gzip")
