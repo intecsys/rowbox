@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-- Lite (no battery: `setup.sh --no-pisugar`) and Ultralight (no display, no battery: `setup.sh --no-display --no-pisugar`) versions; without display, setup prints the portal password and the portal hides display settings (experimental)
+- Light (no battery: `setup.sh --no-pisugar`) and Ultralight (no display, no battery: `setup.sh --no-display --no-pisugar`) versions; without display, setup prints the portal password and the portal hides display settings (experimental)
 - Phone as display: `/display` (or `/anzeige`) shows the box's screens full-screen on the phone, laid out for portrait and swipeable: training, force curve (last five strokes), pacer (vertical seat), live wave, journey (river drawn with stops and a boat at your position, progress bar), status (big verdict like "Ready to row" plus four status cards); linked from the Live page and in the menu
 - Wi-Fi messages in the portal no longer refer to the display
 - Hotspot card: printable label with hotspot name, password and Wi-Fi QR code (portal → Settings → Hotspot); `setup.sh` prints the QR code for boxes without display

@@ -8,7 +8,7 @@ standard **Bluetooth FTMS rower** that fitness apps understand. Your workouts en
 like *Rowing Workout* on the Apple Watch and from there in Apple Health and Fitness.
 
 It runs on a Raspberry Pi Zero 2 W with a PiSugar 3 battery and a PiSugar Whisplay display, or in
-slimmer versions without battery (**Lite**) or without display and battery (**Ultralight**).
+slimmer versions without battery (**Light**) or without display and battery (**Ultralight**).
 
 [Deutsche Anleitung](README.de.md)
 
@@ -86,7 +86,7 @@ slimmer versions without battery (**Lite**) or without display and battery (**Ul
 
 ### Versions
 
-| | Full | Lite | Ultralight |
+| | Full | Light | Ultralight |
 |---|---|---|---|
 | Raspberry Pi Zero 2 W | ✓ | ✓ | ✓ |
 | PiSugar Whisplay (display) | ✓ | ✓ | – |
@@ -98,7 +98,7 @@ slimmer versions without battery (**Lite**) or without display and battery (**Ul
 | Parts cost (approx.) | 100 € | 70 € | 35 € |
 | Install | `setup.sh` | `setup.sh --no-pisugar` | `setup.sh --no-display --no-pisugar` |
 
-Lite and Ultralight are new and not yet tested on a real box; feedback welcome. Without the
+Light and Ultralight are new and not yet tested on a real box; feedback welcome. Without the
 PiSugar, shut the box down in the web portal before unplugging it.
 
 ### Parts
@@ -140,12 +140,12 @@ The S4 goes into the **inner** Micro-USB port of the Zero (labelled USB), not th
    `setup.sh` speaks German or English depending on the system language; force one with
    `sudo bash rowbox/setup.sh --lang en` (or `--lang de`).
 
-### Installing Lite or Ultralight
+### Installing Light or Ultralight
 
 Step 3 with one or two options (see [Versions](#versions)):
 
 ```sh
-sudo bash rowbox/setup.sh --no-pisugar                # Lite: display, no battery
+sudo bash rowbox/setup.sh --no-pisugar                # Light: display, no battery
 sudo bash rowbox/setup.sh --no-display --no-pisugar   # Ultralight: no display, no battery
 ```
 

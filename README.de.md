@@ -8,7 +8,7 @@ und meldet sich als normales **Bluetooth-FTMS-Rudergerät**, das Fitness-Apps ve
 die Einheiten zum Beispiel über *Rowing Workout* auf der Apple Watch in Apple Health und Fitness.
 
 Sie läuft auf einem Raspberry Pi Zero 2 W mit PiSugar-3-Akku und PiSugar-Whisplay-Display, oder
-schlanker ohne Akku (**Lite**) oder ohne Display und Akku (**Ultralight**).
+schlanker ohne Akku (**Light**) oder ohne Display und Akku (**Ultralight**).
 
 [English](README.md)
 
@@ -88,7 +88,7 @@ schlanker ohne Akku (**Lite**) oder ohne Display und Akku (**Ultralight**).
 
 ### Varianten
 
-| | Voll | Lite | Ultralight |
+| | Voll | Light | Ultralight |
 |---|---|---|---|
 | Raspberry Pi Zero 2 W | ✓ | ✓ | ✓ |
 | PiSugar Whisplay (Display) | ✓ | ✓ | – |
@@ -100,7 +100,7 @@ schlanker ohne Akku (**Lite**) oder ohne Display und Akku (**Ultralight**).
 | Teilekosten (ca.) | 100 € | 70 € | 35 € |
 | Installation | `setup.sh` | `setup.sh --no-pisugar` | `setup.sh --no-display --no-pisugar` |
 
-Lite und Ultralight sind neu und noch nicht an einer echten Box getestet; Rückmeldungen sind
+Light und Ultralight sind neu und noch nicht an einer echten Box getestet; Rückmeldungen sind
 willkommen. Ohne PiSugar die Box vor dem Ausstecken im Webportal ausschalten.
 
 ### Teileliste
@@ -143,12 +143,12 @@ Stromanschluss.
    `setup.sh` spricht je nach Systemsprache Deutsch oder Englisch; festlegen lässt es sich mit
    `sudo bash rowbox/setup.sh --lang de` (oder `--lang en`).
 
-### Lite oder Ultralight installieren
+### Light oder Ultralight installieren
 
 Schritt 3 mit einer oder zwei Optionen (siehe [Varianten](#varianten)):
 
 ```sh
-sudo bash rowbox/setup.sh --no-pisugar                # Lite: Display, kein Akku
+sudo bash rowbox/setup.sh --no-pisugar                # Light: Display, kein Akku
 sudo bash rowbox/setup.sh --no-display --no-pisugar   # Ultralight: kein Display, kein Akku
 ```
 
