@@ -51,6 +51,11 @@ done
 for f in rowexport.py rowtext.py rowstroke.py rowgame.py; do
     install -m 644 -o "$USR" -g "$USR" "$f" "$HOMEDIR/$f"
 done
+# Dateien fuer das Webportal (three.js und die 3D-Flussfahrt auf dem Handy)
+install -d -o "$USR" -g "$USR" "$HOMEDIR/static"
+for f in static/*; do
+    install -m 644 -o "$USR" -g "$USR" "$f" "$HOMEDIR/$f"
+done
 cat > /etc/systemd/system/rowportal.service <<UNIT
 [Unit]
 Description=Rowbox web portal and hotspot

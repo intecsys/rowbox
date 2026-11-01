@@ -42,7 +42,9 @@ slimmer versions without battery (**Light**) or without display and battery (**U
   curve of every stroke, drive and recovery time.
 - **Phone as display:** `http://<hostname>.local/display` shows the box's screens full-screen on
   your phone: training, force curve, pacer, live wave, journey and status, switched by swiping left
-  and right. With the Ultralight version this is your display.
+  and right. With the Ultralight version this is your display. The journey screen shows a small
+  3D view on top: a single scull whose rower moves in your real stroke rhythm, with river banks,
+  towns and bridges at the stages (generated scenery, experimental).
 
   <p align="center"><img src="docs/phone_display_en.png" width="760" alt="Phone as display: training, force curve, pacer and journey screens"></p>
 
@@ -278,7 +280,8 @@ Issues, ideas and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.
 
 ## License
 
-GPL-3.0-or-later, see [LICENSE](LICENSE). You may use, change and share Rowbox freely, also
+GPL-3.0-or-later, see [LICENSE](LICENSE). `static/three.module.min.js` is
+[three.js](https://threejs.org) (MIT, see [static/LICENSE.three.txt](static/LICENSE.three.txt)). You may use, change and share Rowbox freely, also
 commercially, as long as you publish the full source of your version under the same license.
 
 No warranty. You build and use the box at your own risk, especially the LiPo battery: use a proper

@@ -11,7 +11,7 @@
 - Logbuch-Einheiten als FIT oder TCX herunterladen (fuer Strava, Garmin Connect usw.).
 - Optional: sendet die Werte per MQTT, z. B. an Home Assistant.
 """
-import base64, csv, hashlib, html, io, json, os, re, secrets, subprocess, threading, time
+import base64, csv, gzip, hashlib, html, io, json, os, re, secrets, subprocess, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, quote, urlparse
 
@@ -55,6 +55,9 @@ VIEW_CHOICES = [("status", "Status"), ("training", "Training"), ("force", "Kraft
                 ("history", "Verlauf"), ("journey", "Reise"), ("info", "Info")]
 lock = threading.Lock()
 SESSIONS = {}            # Anmelde-Token -> Ablaufzeit (nur im Speicher)
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+STATIC_FILES = {"three.module.min.js": "text/javascript", "river3d.js": "text/javascript"}
+STATIC_CACHE = {}
 SESSION_DAYS = 30
 
 
@@ -743,6 +746,10 @@ justify-content:space-between;text-align:left;border:2px solid transparent;min-h
 .prog{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:8px 0 2px}
 .prog i{display:block;height:100%;background:linear-gradient(90deg,#2f6fda,var(--sig))}
 #jr-svg{position:absolute;left:0;top:0;width:64px;height:100%;overflow:visible}
+.scene{height:30vh;margin:10px -20px 0;position:relative;overflow:hidden;background:#0d1a2b}
+.scene canvas{width:100%!important;height:100%!important;display:block;margin:0}
+.scene:empty{display:none}
+
 #journey .grow{padding:6px 0}
 #journey .route{padding-left:0}#journey .route li{padding-left:70px}
 #journey .route li::before,#journey .route li::after{display:none}
@@ -783,7 +790,7 @@ try{const id=localStorage.getItem('rowbox-screen');const i=slides.findIndex(x=>x
 const go=d=>deck.scrollTo({left:(current()+d)*deck.clientWidth,behavior:'smooth'});
 $('prev').onclick=()=>go(-1);$('next').onclick=()=>go(1);
 const arrows=()=>{$('prev').disabled=cur==0;$('next').disabled=cur==slides.length-1};
-const _mark=mark;mark=function(){_mark();arrows()};
+const _mark=mark;mark=function(){_mark();arrows();if(typeof scene3d=='function')scene3d()};
 mark();
 // --- 1 Hz: Trainingswerte, Kraftkurve, Status ---
 let S={},lastN=null;const hist=[];
@@ -830,7 +837,7 @@ async function slow(){
   const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let li=past.slice(-1).map(s=>'<li class="past">'+esc(s[1])+'<span>'+kmf(g.km-s[0])+' km</span></li>');
   if(!g.done)li.push('<li class="here">'+esc(T.here)+'<span></span></li>');
-  li=li.concat(ahead.slice(0,5).map(s=>'<li>'+esc(s[1])+'<span>'+kmf(s[0]-g.km)+' km</span></li>'));
+  li=li.concat(ahead.slice(0,R3?3:5).map(s=>'<li>'+esc(s[1])+'<span>'+kmf(s[0]-g.km)+' km</span></li>'));
   $('jr-route').innerHTML=li.join('');
   $('jr-bar').style.width=Math.min(100,g.km/g.total*100).toFixed(1)+'%';
   $('jr-prog').textContent=kmf(g.km)+' / '+kmf(g.total)+' km';
@@ -860,6 +867,15 @@ function river(){
    '" stroke="'+(it.cls=='past'?'#ff5a1f':'#f2f2ee')+'" stroke-width="2.5"/>'}
  svg.innerHTML=out}
 addEventListener('resize',river);
+window.rowboxState=()=>({S,W,G});
+var R3=null,R3try=false;
+function scene3d(){
+ const on=slides[cur]&&slides[cur].id=='journey'&&!document.hidden;
+ if(on&&!R3try){R3try=true;import('/static/river3d.js').then(m=>{R3=m.start($('jr-3d'),window.rowboxState);
+   if(!R3)$('jr-3d').remove();else{R3.run(true);if(G)slow()}}).catch(()=>{const e=$('jr-3d');if(e)e.remove()})}
+ if(R3)R3.run(on);
+}
+document.addEventListener('visibilitychange',scene3d);
 // --- 10 Hz nur fuer Taktgeber und Live-Kurve ---
 let W={};
 const P={phase:0,period:null,t:performance.now()/1000,last:0,started:false,warm:0,marks:[]};
@@ -902,7 +918,7 @@ function wave(){
 }
 async function fast(){
  const id=slides[cur].id;
- if(id=='pacer'||id=='wave'){try{W=await (await fetch('/wave.json',{cache:'no-store'})).json()}catch(e){}}
+ if(id=='pacer'||id=='wave'||(id=='journey'&&R3)){try{W=await (await fetch('/wave.json',{cache:'no-store'})).json()}catch(e){}}
  if(id=='pacer')pacer();if(id=='wave')wave();
 }
 live();slow();setInterval(live,1000);setInterval(slow,10000);setInterval(fast,100);
@@ -925,6 +941,7 @@ def screen_page():
     journey = f"""<section class="slide" id="journey"><div class="sc full">
 <div class="jhead"><div class="big" id="jr-river">{L("Reise")}</div><span id="jr-prog"></span></div>
 <div class="prog"><i id="jr-bar" style="width:0"></i></div>
+<div class="scene" id="jr-3d"></div>
 <div class="navc"><div class="lab">{L("Nächste Etappe")}</div><div class="big" id="jr-next">…</div>
 <div class="r2"><span><span id="jr-nkm"></span> km</span><span class="warn" id="jr-neta"></span></div></div>
 <div class="grow"><svg id="jr-svg"></svg><ul class="route" id="jr-route"></ul></div>
@@ -1538,6 +1555,32 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def static(self, name):
+        """Dateien aus static/ (three.js, 3D-Flussfahrt): lange cachen, gzip einmal im Speicher."""
+        if name not in STATIC_FILES:
+            return self.send("", "text/plain", code=404)
+        path = os.path.join(STATIC_DIR, name)
+        mtime = os.path.getmtime(path)
+        if STATIC_CACHE.get(name, (None,) * 4)[3] != mtime:     # nach einem Update neu einlesen
+            raw = open(path, "rb").read()
+            STATIC_CACHE[name] = (raw, gzip.compress(raw, 6), hashlib.sha1(raw).hexdigest()[:16], mtime)
+        raw, gz, tag, _ = STATIC_CACHE[name]
+        if self.headers.get("If-None-Match") == tag:
+            self.send_response(304)
+            self.end_headers()
+            return
+        use_gz = "gzip" in (self.headers.get("Accept-Encoding") or "")
+        data = gz if use_gz else raw
+        self.send_response(200)
+        self.send_header("Content-Type", STATIC_FILES[name])
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "public, max-age=86400")
+        self.send_header("ETag", tag)
+        if use_gz:
+            self.send_header("Content-Encoding", "gzip")
+        self.end_headers()
+        self.wfile.write(data)
+
     def redirect(self, to):
         self.send_response(303)
         self.send_header("Location", to)
@@ -1555,6 +1598,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.start_session("/")
             nxt = q.get("next", ["/"])[0]
             return self.send(login_page(nxt=nxt if nxt.startswith("/") else "/", lang=q.get("l", [None])[0]))
+        if u.path.startswith("/static/"):
+            return self.static(u.path[len("/static/"):])
         if u.path == "/logout":
             SESSIONS.pop(self.token(), None)
             self.send_response(303)

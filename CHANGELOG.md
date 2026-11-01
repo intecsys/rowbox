@@ -6,6 +6,7 @@
 - Wi-Fi messages in the portal no longer refer to the display
 - Hotspot card: printable label with hotspot name, password and Wi-Fi QR code (portal → Settings → Hotspot); `setup.sh` prints the QR code for boxes without display
 - Phone display: swipe bar with arrows at the bottom of every screen
+- Phone display: 3D view on the journey screen (three.js, bundled): single scull with the rower in the real stroke rhythm, banks, trees, towns with church, bridge and name sign at each stage; renders only while the journey screen is visible
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2

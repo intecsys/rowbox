@@ -42,7 +42,10 @@ schlanker ohne Akku (**Light**) oder ohne Display und Akku (**Ultralight**).
   Kraftkurve jedes Zugs sowie Zug- und Rollphase.
 - **Handy als Display:** `http://<hostname>.local/anzeige` zeigt die Ansichten der Box im Vollbild
   auf dem Handy: Training, Kraftkurve, Taktgeber, Live-Kurve, Reise und Status, gewechselt durch
-  Wischen nach links und rechts. Bei der Ultralight-Variante ist das dein Display.
+  Wischen nach links und rechts. Bei der Ultralight-Variante ist das dein Display. Die
+  Reise-Ansicht zeigt oben eine kleine 3D-Szene: einen Einer, dessen Ruderer im echten
+  Schlagrhythmus rudert, mit Ufern, Orten und Brücken an den Etappen (erzeugte Landschaft,
+  experimentell).
 
   <p align="center"><img src="docs/phone_display.png" width="760" alt="Handy als Display: Training, Kraftkurve, Taktgeber und Reise"></p>
 
@@ -281,7 +284,8 @@ Fehlermeldungen, Ideen und Pull Requests sind willkommen, siehe [CONTRIBUTING.md
 
 ## Lizenz
 
-GPL-3.0-or-later, siehe [LICENSE](LICENSE). Du darfst Rowbox frei nutzen, ändern und weitergeben,
+GPL-3.0-or-later, siehe [LICENSE](LICENSE). `static/three.module.min.js` ist
+[three.js](https://threejs.org) (MIT, siehe [static/LICENSE.three.txt](static/LICENSE.three.txt)). Du darfst Rowbox frei nutzen, ändern und weitergeben,
 auch kommerziell, solange du den vollständigen Quellcode deiner Version unter derselben Lizenz
 veröffentlichst.
 
