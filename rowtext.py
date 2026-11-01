@@ -331,7 +331,7 @@ EN = {
     "Orte auf der Strecke": "Places along the route", "Kleine Karte in der 3D-Ansicht": "Small map in the 3D view",
     "Wetter-Schild in der 3D-Ansicht": "Weather label in the 3D view", "Reise-Ansicht auf dem Handy": "Journey screen on the phone",
     "Welche Elemente die Reise-Ansicht zeigt.": "Which parts the journey screen shows.",
-    "Farben im 3D-Boot": "Colours of the 3D boat", "Boot": "Boat", "Blätter": "Blades", "Einteiler": "Unisuit",
+    "Farben im 3D-Boot": "Colours of the 3D boat", "Boot": "Boat", "Blätter": "Blades", "Shirt": "Shirt",
     # Wetter auf der Reise
     "klar": "clear", "heiter": "mostly sunny", "wolkig": "partly cloudy", "bedeckt": "overcast",
     "Nebel": "fog", "Nieselregen": "drizzle", "leichter Regen": "light rain", "Regen": "rain",
