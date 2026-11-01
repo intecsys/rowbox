@@ -81,8 +81,8 @@ It runs on a Raspberry Pi Zero 2 W with a PiSugar 3 battery and a PiSugar Whispl
 | Part | Notes |
 |---|---|
 | Raspberry Pi Zero 2 W | with soldered GPIO header |
-| [PiSugar 3](https://github.com/PiSugar/pisugar-power-manager-rs) | 1200 mAh battery board, sits under the Pi. Optional: a USB power bank works too, you only lose the battery level, the clock and the power button (shut down via the web portal) |
-| [PiSugar Whisplay HAT](https://github.com/PiSugar/whisplay) | 1.69" LCD, speaker, mics, button, RGB LED |
+| [PiSugar 3](https://pisugar.com) | 1200 mAh battery board, sits under the Pi ([software](https://github.com/PiSugar/pisugar-power-manager-rs)). Optional: a USB power bank works too, you only lose the battery level, the clock and the power button (shut down via the web portal) |
+| [PiSugar Whisplay HAT](https://pisugar.com) | 1.69" LCD, speaker, mics, button, RGB LED ([driver](https://github.com/PiSugar/whisplay)) |
 | microSD card | 8 GB or more |
 | USB cable | Mini-USB (S4) to Micro-USB (Pi), or Mini-USB cable plus Micro-USB OTG adapter |
 | Case | 3D-printable: [PiSugar suit-cases / pisugar3-whisplay-chatbot-fdm](https://github.com/PiSugar/suit-cases/tree/main/pisugar3-whisplay-chatbot-fdm) |
