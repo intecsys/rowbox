@@ -445,6 +445,16 @@ def eta_text(value, mode):
     return L("an {t}", t=value) if mode == "time" else L("ca. {t}", t=value)
 
 
+def draw_scull(d, x, y):
+    """Renn-Einer von oben, faehrt nach rechts: Rumpf, zwei Skulls mit Blaettern, Ruderer."""
+    sig = (255, 90, 31)
+    d.polygon([(x - 15, y), (x - 7, y - 3), (x + 7, y - 3), (x + 15, y), (x + 7, y + 3), (x - 7, y + 3)], fill=C_FG)
+    for sy in (-1, 1):
+        d.line((x + 1, y + sy * 2, x - 3, y + sy * 8), fill=C_FG, width=2)
+        d.ellipse((x - 6, y + sy * 8 - 2, x - 1, y + sy * 8 + 2), fill=sig)
+    d.ellipse((x - 3, y - 2, x + 1, y + 2), fill=sig)
+
+
 def draw_journey(batt, plug, s=None):
     """Reise als Navigation: naechste Etappe oben, Strecke in der Mitte, Endziel unten."""
     s = s or {}
@@ -480,7 +490,7 @@ def draw_journey(batt, plug, s=None):
         done = k <= st["km"]
         d.ellipse((x - 4, y - 4, x + 4, y + 4), fill=(255, 90, 31) if done else (60, 66, 76))
     bx = x0 + (x1 - x0) * frac
-    d.polygon([(bx - 7, y - 16), (bx + 7, y - 16), (bx, y - 6)], fill=C_FG)   # Boot
+    draw_scull(d, bx, y - 13)                                              # Boot ueber der Linie
     # Ziel
     if st["done"]:
         d.text((W // 2, 196), L("{km} km gerudert", km=fmt_num(st["total"])), font=F_SMALL, fill=C_FG, anchor="mm")
