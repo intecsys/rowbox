@@ -1,16 +1,20 @@
 # Rowbox
 
-**A small battery-powered box that adds Bluetooth to the WaterRower S4 monitor.**
+**Bluetooth for the WaterRower S4. A small open-source box with display, force curve, logbook and
+a 3D river journey on your phone.**
 
-The WaterRower S4 performance monitor has a USB port but no Bluetooth (the Lite and older
-Original/Metallic models). Rowbox plugs into that USB port, reads the monitor and broadcasts a
-standard **Bluetooth FTMS rower** that fitness apps understand. Your workouts end up in apps
-like *Rowing Workout* on the Apple Watch and from there in Apple Health and Fitness.
-
-It runs on a Raspberry Pi Zero 2 W with a PiSugar 3 battery and a PiSugar Whisplay display, or in
-slimmer versions without battery (**Light**) or without display and battery (**Ultralight**).
+[![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
+![Raspberry Pi Zero 2 W](https://img.shields.io/badge/hardware-Raspberry%20Pi%20Zero%202%20W-c51a4a.svg)
+![Bluetooth FTMS](https://img.shields.io/badge/Bluetooth-FTMS%20rower-0a6cff.svg)
+![Languages](https://img.shields.io/badge/languages-English%20%7C%20Deutsch-555.svg)
 
 [Deutsche Anleitung](README.de.md)
+
+The WaterRower S4 performance monitor has a USB port but no Bluetooth. Rowbox plugs into that
+port, reads the monitor and broadcasts a standard **Bluetooth FTMS rower** that fitness apps
+understand, so your sessions end up in apps like *Rowing Workout* on the Apple Watch and from there
+in Apple Health. On top it shows your training on its own display or on your phone, records every
+stroke and lets you row real rivers.
 
 <p align="center">
   <img src="docs/box.jpg" height="380" alt="Rowbox in its 3D-printed case, showing the force curve of the last session">
@@ -18,112 +22,146 @@ slimmer versions without battery (**Light**) or without display and battery (**U
 </p>
 <p align="center"><sub>The box in its case, and six of its display screens: status, training with pacer, force curve, live flywheel wave, journey and a trophy.</sub></p>
 
-## Row the Rhine in 3D
+## At a glance
 
-Every metre on the WaterRower moves you down a real river. On your phone the journey screen shows
-it as a small 3D scene: a single scull on the water, and the rower in it moves with **your**
-strokes. Each drive starts when you take a real catch, legs first, then the body, the boat surging
-with the shape of your force curve. Stop rowing and he waits at the catch.
+| | |
+|---|---|
+| **Connects** | WaterRower S4 (USB) → Bluetooth FTMS rower for iPhone, Apple Watch, Android, Meta Quest and more |
+| **Shows** | Live values, force curve, pacer and journey on the box display, in the browser and full-screen on a phone or tablet |
+| **Records** | Every session in a logbook with per-second data, export as FIT, TCX, CSV or JSON for Strava, Garmin Connect, Intervals.icu |
+| **Motivates** | Journeys along real routes, a 3D Rhine from Basel to Rotterdam with real terrain, landmarks and weather, relaxed trophies |
+| **Runs** | On a Raspberry Pi Zero 2 W, with or without battery and display, entirely offline if you like |
+| **Costs** | About 35–100 € in parts, depending on the [version](#versions) |
 
-<p align="center"><img src="docs/rhine_3d_en.jpg" width="900" alt="3D journey on the Rhine: phone screen and four scenes with the Loreley, Pfalzgrafenstein castle, Burg Katz in the evening and rain at Burg Rheinstein"></p>
+## Contents
 
-- **The real Rhine, Basel to Rotterdam (834 km):** the course of the river from OpenStreetMap,
-  real terrain from elevation data (the Middle Rhine valley rises 150–200 m on both banks), 74 real
-  bridges and 242 landmarks with their names: castles from Rheinstein to Stolzenfels, the
-  Pfalzgrafenstein in the middle of the river, cathedrals, churches, towers, the Loreley rock and
-  the windmills of Kinderdijk. A small map shows where you are.
-- **Real light and weather:** the sun stands where it really stands at that place and time, so
-  you row into dusk on a November evening. When the box is online it fetches the current weather
-  at your virtual position: clouds by cover, rain and snow, fog by visibility, wind on the water,
-  and a small label like "9 °C · rain".
-- **Works offline:** the route ships with the box (about 85 KB), no map service needed while you
-  row. Without internet the sky simply stays fair.
-- **Live values on the river:** a card under the scene shows pace, stroke rate and watts while
-  you row, together with the next stage and the destination.
-- **Tablet or phone sideways = cockpit:** the river fills the whole screen, with glass panels for
-  the route, the next stage and five live values (metres, pace, stroke rate, watts, time).
-  The screen stays on while you row.
-- **Make it yours:** in Settings → Journey you pick which parts the journey screen shows (3D view,
-  live values, next stage, places, destination, small map, weather label), the colours of the
-  boat, the blades and the rower's shirt, and the light: real time and weather, or a fixed mood
-  (sunny day, sunset, misty morning, rainy day).
-- **Made for the phone:** three.js runs in the phone's browser; the Pi only serves the files.
-  The scene renders only while the journey screen is visible.
-
-<p align="center"><img src="docs/cockpit_en.jpg" width="900" alt="Journey as a cockpit on a tablet in landscape: 3D river across the screen, route at the top, next stage and destination on the right, five live values at the bottom"></p>
-<p align="center"><sub>Sideways on a tablet: the journey as a cockpit.</sub></p>
-
-Other routes keep a generated river for now; `tools/build_route.py` turns OpenStreetMap data
-into a route file (see [CONTRIBUTING](CONTRIBUTING.md)).
+- [Features](#features)
+- [Row the Rhine in 3D](#row-the-rhine-in-3d)
+- [Hardware](#hardware)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Compatibility](#compatibility)
+- [Troubleshooting](#troubleshooting)
+- [Privacy](#privacy)
+- [Development](#development)
+- [License and credits](#license-and-credits)
 
 ## Features
 
-- **S4 → Bluetooth FTMS bridge:** distance, stroke rate, stroke count, pace, power, calories, time.
-  A reset from the app is passed on to the S4. Heart rate is passed on too if the S4 has a
-  heart rate receiver. The box also reports manufacturer, model and version (Device Information
-  service), which some apps need before they connect.
-- **Display:** status (bridge, S4, app, Wi-Fi, battery), live training, summary after a workout,
-  history of the last sessions. Turns off after a while, button wakes it.
-- **Buttons:** short press on the display button cycles the screens, holding it for 3 s opens
-  the hotspot (or closes it). The lower PiSugar 3 button (next to the battery LEDs) shows the
-  battery level on its four LEDs with a short press, and switches the box on with a short press
-  followed by a long hold (the LEDs count up, then it starts). Holding it while the box runs shuts it down
-  cleanly before the power goes off; short press plus long hold cuts the power immediately (only
-  if the box hangs). The upper PiSugar 3 button is a shortcut: short press shows the status
-  screen, long press switches the language.
-- **Logbook:** every session is saved on the box (distance, time, pace, average/max watts,
-  stroke rate, heart rate). Download as CSV or JSON, and every session as a **FIT or TCX file**
-  with per-second data for Strava, Garmin Connect, Intervals.icu and others.
-- **Web portal** at `http://<hostname>.local`: status, Wi-Fi networks, logbook, logs, settings.
-  Password protected.
-- **Live view** in the browser: big numbers for a phone or tablet at the rower, plus the force
-  curve of every stroke, drive and recovery time.
-- **Phone as display:** `http://<hostname>.local/display` shows the box's screens full-screen on
-  your phone: training, force curve, pacer, live wave, journey and status, switched by swiping left
-  and right. Turn the phone or a tablet sideways and the journey becomes a cockpit: the 3D river
-  across the whole screen, with the live values on top. The screen stays on while you row.
-  With the Ultralight version this is your display. The journey screen shows the
-  [3D river](#row-the-rhine-in-3d). For the weather the box sends your virtual position on the
-  route, not yours, to [Open-Meteo](https://open-meteo.com) about every 15 minutes; you can switch
-  it off in the settings.
+### Bluetooth bridge
 
-  <p align="center"><img src="docs/phone_display_en.png" width="760" alt="Phone as display: training, force curve, journey in 3D and status screens"></p>
+- **Standard FTMS rower:** distance, stroke rate, stroke count, pace, power, calories and time.
+  Apps see a rower called **"WaterRower S4"**.
+- **Two-way:** a reset from the app resets the S4. Heart rate is passed on if the S4 has a heart
+  rate receiver.
+- **Well-behaved:** the box reports manufacturer, model and version (Device Information service),
+  which some apps need before they connect. It reads the S4's firmware version and shows it in
+  the portal.
 
-  <p align="center"><img src="docs/portal_en.png" width="760" alt="Web portal on a phone: live view, journey and session analysis"></p>
-  <p align="center"><sub>Web portal on a phone: live view, journey and the analysis of one session.</sub></p>
+### On the box
+
+- **Display:** status, live training, summary after a session, history of the last sessions,
+  pacer, live wave and journey. Turns off after a while, a button wakes it. You choose which
+  screens the button cycles through.
+- **Setup assistant:** on first start the display guides through language, Wi-Fi, web portal
+  (login by QR code), connecting the S4 and the app and a test stroke. Each step ticks itself off.
+- **Buttons:** a short press on the display button cycles the screens, holding it for 3 s opens the
+  hotspot. The PiSugar button shows the battery level, switches the box on and shuts it down
+  cleanly ([details](#buttons)).
+- **Pause countdown, sounds, clock without Wi-Fi:** during a short break the display shows when the
+  session ends automatically; short tones when the S4 or the app connects; the PiSugar real-time
+  clock keeps logbook times right even offline.
+
+<p align="center"><img src="docs/wizard_en.png" width="560" alt="Setup assistant on the display"></p>
+
+### Web portal
+
+At `http://<hostname>.local`, password protected: status, Wi-Fi networks, logbook, logs and all
+settings. The **live view** shows big numbers for a phone or tablet at the rower, the force curve of
+every stroke and drive and recovery times.
+
+<p align="center"><img src="docs/portal_en.png" width="760" alt="Web portal on a phone: live view, journey and session analysis"></p>
+<p align="center"><sub>Web portal on a phone: live view, journey and the analysis of one session.</sub></p>
+
+### Phone and tablet as display
+
+`http://<hostname>.local/display` shows the box's screens full-screen on your phone: training,
+force curve, pacer, live wave, journey and status, switched by swiping. With the Ultralight version
+this is your display.
+
+- **Portrait and landscape:** every screen has its own layout for both. Sideways, the journey
+  becomes a cockpit with the 3D river across the whole screen.
+- **Stays on:** the screen does not lock while the display is open.
+- **Like an app:** a full-screen button on iPad and Android; on the iPhone add the page to the home
+  screen and it opens without browser bars.
+
+<p align="center"><img src="docs/phone_display_en.png" width="760" alt="Phone as display: training, force curve, journey in 3D and status"></p>
+
+### Force curve, pacer and live wave
+
 - **Force curve:** the S4 reports its paddle-wheel sensor pulses every 25 ms. From these the box
-  computes the shape of each stroke (no extra sensor needed). It shows up live, on the display and
-  per session in the logbook (average, every single stroke, start vs. end of the session).
-- **Pacer and live wave** on the display: a dot moves like the seat (fast on the drive, slow on
-  the recovery) in your own rhythm or at a fixed stroke rate; dots below show whether each stroke
-  was in time. The live wave shows the paddle-wheel speed of the last six seconds. Both are extra
-  screens and can also run as a strip in the training screen (switchable in the settings).
-- **Journey and trophies:** every metre you row moves a boat along a real route (English Channel,
-  Rhine, Thames, Seine, Po, Nile, Yangtze, Mississippi, Amazon, Murray, the Onyx in Antarctica or
-  across the Atlantic), shown like a navigation screen with the next stage, the destination and
-  relaxed arrival estimates, and on the phone as a [3D scene](#row-the-rhine-in-3d). Trophies for things like the first
-  10 km or an hour in one go appear on the display after a session. No streaks, no deadlines,
-  nothing to lose; switch it off in the settings if you like.
-- **Your own set of screens:** in the settings you choose which screens the display button
-  cycles through, which parts the phone's journey screen shows and the colours of the 3D boat.
-- **Pause countdown:** during a short break the display stays on the training screen and shows
-  how long until the session ends automatically.
+  computes the shape of each stroke, no extra sensor needed. Live, on the display and per session
+  in the logbook (average, every single stroke, start vs. end).
+- **Pacer:** a dot moves like the seat, fast on the drive, slow on the recovery, in your own rhythm
+  or at a fixed rate. Dots below show whether each stroke was in time.
+- **Live wave:** the paddle-wheel speed of the last six seconds.
+
+### Logbook and export
+
+Every session is saved on the box: distance, time, pace, average and maximum watts, stroke rate,
+heart rate and the force curve. Download the logbook as CSV or JSON and every session as a
+**FIT or TCX file** with per-second data for Strava, Garmin Connect, Intervals.icu and others.
+
+### Journeys and trophies
+
+Every metre moves a boat along a real route: the Rhine, Thames, Seine, Po, Nile, Yangtze,
+Mississippi, Amazon, Murray, the English Channel, the Onyx in Antarctica or across the Atlantic.
+Shown like a sat-nav with the next stage, the destination and relaxed arrival estimates. Trophies
+for things like the first 10 km appear after a session. No streaks, no deadlines, nothing to lose;
+switch it off if you like. On the Rhine the journey is a [3D scene](#row-the-rhine-in-3d).
+
+### Connectivity
+
+- **Hotspot fallback:** if no known Wi-Fi is around, the box opens its own hotspot and shows a QR
+  code; the setup page opens by itself. A printable **hotspot card** keeps name, password and QR
+  code at hand.
 - **MQTT (optional):** sends the values to an MQTT server; Home Assistant picks them up
   automatically.
-- **Hotspot fallback:** if no known Wi-Fi is around, the box opens its own hotspot and shows a
-  QR code. Scan it, the setup page opens on its own, pick your network.
-- **German and English:** display, web portal and setup script. The language is chosen in the
-  setup assistant and can be changed in the portal at any time.
-- **Setup assistant:** on first start the display guides through language, Wi-Fi, web portal
-  (login by scanning a QR code), connecting the S4, connecting the app and a test stroke. Each step
-  ticks itself off; the button skips a step.
+- **German and English:** display, web portal and setup script, switchable at any time.
 
-  <p align="center"><img src="docs/wizard_en.png" width="560" alt="Setup assistant"></p>
-- **Clock without Wi-Fi:** the time is taken from the PiSugar 3 real-time clock, so logbook
-  entries are correct even offline.
-- **Sounds:** short tones when the S4 or the app connects and when a session is saved (can be
-  switched off).
-- **S4 simulator** for testing everything without the rowing machine.
+## Row the Rhine in 3D
+
+On your phone the journey screen shows a single scull on the river, and the rower in it moves with
+**your** strokes: each drive starts with your real catch, legs first, then the body, and the boat
+surges with the shape of your force curve. Stop rowing and he waits at the catch.
+
+<p align="center"><img src="docs/rhine_3d_en.jpg" width="900" alt="3D journey on the Rhine: phone screen and four scenes with the Loreley, Pfalzgrafenstein castle, Burg Katz and rain at Burg Rheinstein"></p>
+
+- **The real Rhine, Basel to Rotterdam (834 km):** the course of the river from OpenStreetMap,
+  real terrain from elevation data (the Middle Rhine valley rises 150–200 m on both banks), 74
+  bridges and 242 landmarks by name, from Burg Rheinstein and the Loreley to the windmills of
+  Kinderdijk. A small map shows where you are.
+- **Real light and weather:** the sun stands where it really stands at that place and time. When
+  the box is online it adds the current weather at your virtual position: clouds, rain, snow, fog
+  and wind on the water. Or pick a fixed mood: sunny day, sunset, misty morning or rainy day.
+- **Live values on the river:** pace, stroke rate and watts in a card under the scene, together
+  with the next stage and the destination.
+- **Cockpit in landscape:** on a tablet or a phone turned sideways the river fills the screen,
+  with the route, the next stage and five live values on glass panels.
+- **Yours to set up:** choose which parts the screen shows and the colours of the boat, the blades
+  and the rower's shirt (Settings → Journey).
+- **Light on the box:** three.js runs in the phone's browser and adapts its resolution to the
+  device; the Pi only serves the files. The route ships with the box, no map service needed while
+  you row.
+
+<p align="center"><img src="docs/cockpit_en.jpg" width="900" alt="Journey as a cockpit on a tablet in landscape"></p>
+<p align="center"><sub>Sideways on a tablet: the journey as a cockpit.</sub></p>
+
+<p align="center"><img src="docs/moods_en.jpg" width="900" alt="The four fixed moods: sunny day, sunset, misty morning, rainy day"></p>
+<p align="center"><sub>Fixed moods for when you prefer the light of your choice to the real one.</sub></p>
+
+Other routes use a generated river for now; `tools/build_route.py` turns OpenStreetMap data into a
+route file (see [CONTRIBUTING](CONTRIBUTING.md)).
 
 ## Hardware
 
@@ -135,7 +173,7 @@ into a route file (see [CONTRIBUTING](CONTRIBUTING.md)).
 | PiSugar Whisplay (display) | ✓ | ✓ | – |
 | PiSugar 3 (battery) | ✓ | – (USB power bank or power supply) | – (USB power bank or power supply) |
 | Bluetooth FTMS, force curve, logbook, FIT/TCX, journeys, web portal, MQTT | ✓ | ✓ | ✓ |
-| Phone as display (swipeable screens incl. pacer and live wave) | ✓ | ✓ | ✓ |
+| Phone and tablet as display, 3D river | ✓ | ✓ | ✓ |
 | Display on the box, sounds, setup assistant | ✓ | ✓ | – |
 | Battery level, power button, clock without Wi-Fi | ✓ | – | – |
 | Parts cost (approx.) | 100 € | 70 € | 35 € |
@@ -149,7 +187,7 @@ PiSugar, shut the box down in the web portal before unplugging it.
 | Part | Notes |
 |---|---|
 | Raspberry Pi Zero 2 W | with soldered GPIO header |
-| [PiSugar 3](https://pisugar.com) | 1200 mAh battery board, sits under the Pi ([software](https://github.com/PiSugar/pisugar-power-manager-rs)). Optional: a USB power bank works too, you only lose the battery level, the clock and the power button (shut down via the web portal) |
+| [PiSugar 3](https://pisugar.com) | 1200 mAh battery board, sits under the Pi ([software](https://github.com/PiSugar/pisugar-power-manager-rs)). Optional: a USB power bank works too, you only lose the battery level, the clock and the power button |
 | [PiSugar Whisplay HAT](https://pisugar.com) | 1.69" LCD, speaker, mics, button, RGB LED ([driver](https://github.com/PiSugar/whisplay)) |
 | microSD card | 8 GB or more |
 | USB cable | Mini-USB (S4) to Micro-USB (Pi), or Mini-USB cable plus Micro-USB OTG adapter |
@@ -160,12 +198,11 @@ The S4 goes into the **inner** Micro-USB port of the Zero (labelled USB), not th
 <p align="center"><img src="docs/inside.jpg" width="640" alt="Rowbox without case: Whisplay display on top, Pi Zero 2 W and PiSugar 3 with battery underneath"></p>
 <p align="center"><sub>Without the case: the Whisplay display on top, the Pi Zero 2 W and the PiSugar 3 with its battery underneath.</sub></p>
 
-
 ## Installation
 
 1. Write **Raspberry Pi OS Lite (64-bit)** with Raspberry Pi Imager. In the settings set a
-   hostname (e.g. `rowbox`), user, password, your Wi-Fi and enable SSH.
-2. Boot, wait a few minutes (first boot is slow on the Zero), then log in:
+   hostname (e.g. `rowbox`), user, password and your Wi-Fi, and enable SSH.
+2. Boot, wait a few minutes (the first boot is slow on the Zero), then log in:
    `ssh <user>@<hostname>.local`
 3. Install:
    ```sh
@@ -175,15 +212,19 @@ The S4 goes into the **inner** Micro-USB port of the Zero (labelled USB), not th
    sudo reboot
    ```
    This installs the bridge, display and portal as services, the PiSugar tools, the Whisplay
-   driver (builds a kernel module, takes a while) and the Wi-Fi fix for mixed WPA2/WPA3 routers (see below).
-4. After the reboot the setup assistant starts on the display and first asks for the language
-   (press the button to switch, it continues by itself after a few seconds). The portal password
-   is also on the **Info** screen.
+   driver (builds a kernel module, takes a while) and the Wi-Fi fix for mixed WPA2/WPA3 routers.
+4. After the reboot the setup assistant starts on the display. The portal password is also on the
+   **Info** screen.
 
-   `setup.sh` speaks German or English depending on the system language; force one with
-   `sudo bash rowbox/setup.sh --lang en` (or `--lang de`).
+`setup.sh` speaks German or English depending on the system language; force one with
+`--lang en` or `--lang de`.
 
-### Installing Light or Ultralight
+**Update** later with:
+```sh
+cd ~/rowbox && git pull && sudo bash setup.sh && sudo reboot
+```
+
+### Light and Ultralight
 
 Step 3 with one or two options (see [Versions](#versions)):
 
@@ -192,40 +233,42 @@ sudo bash rowbox/setup.sh --no-pisugar                # Light: display, no batte
 sudo bash rowbox/setup.sh --no-display --no-pisugar   # Ultralight: no display, no battery
 ```
 
-Ultralight has no setup assistant: `setup.sh` prints the portal password and the hotspot name at
-the end (look it up later with `sudo grep password /etc/rowbox.json`). Then connect your app to
-**"WaterRower S4"** and open the portal at `http://<hostname>.local`.
+Ultralight has no setup assistant: `setup.sh` prints the portal password, the hotspot name and a
+QR code at the end (look the password up later with `sudo grep password /etc/rowbox.json`). Then
+connect your app to **"WaterRower S4"**, open `http://<hostname>.local/display` on your phone and
+put it on the rower.
 
-**Your phone is the display:** open `http://<hostname>.local/display` and put the phone on the
-rower. Swipe left and right between training, force curve, pacer, live wave, journey and status.
-Tip: add the page to the home screen and switch off auto-lock while rowing, so the screen stays on.
-
-**New Wi-Fi without a display:** if the box finds no known Wi-Fi (e.g. at a new place), it opens
-its own hotspot after about a minute (two minutes after power-on). Join it with your phone using
-the name and password from `setup.sh`, or scan the QR code that `setup.sh` prints. The setup page
-opens by itself (otherwise go to `http://10.42.0.1`); log in with the same password, pick your
-network under **Wi-Fi** and the box connects. Tip: print the **hotspot card** (portal → Settings →
-Hotspot → Printable card) and stick it on the box, then you always have name, password and QR code
-at hand. The hotspot closes by itself and the box retries known networks every two minutes while
-nobody is connected.
+**New Wi-Fi without a display:** if the box finds no known Wi-Fi, it opens its own hotspot after
+about a minute (two minutes after power-on). Join it with the name and password from `setup.sh` or
+the QR code, the setup page opens by itself (otherwise `http://10.42.0.1`), and pick your network
+under **Wi-Fi**. Tip: print the **hotspot card** (portal → Settings → Hotspot) and stick it on the
+box.
 
 ## Usage
 
 1. Switch on the S4 and connect it to the box.
-2. In your app, connect to the rower **"WaterRower S4"**. On iPhone this happens inside the app,
-   not in the iOS Bluetooth settings.
+2. In your app, connect to the rower **"WaterRower S4"**. On the iPhone this happens inside the
+   app, not in the iOS Bluetooth settings.
 3. Row. The display switches to the training screen by itself.
 
-Tested with *Rowing Workout* on iPhone and Apple Watch: the session appears in Apple Fitness
-as "Indoor Rowing" with distance from the S4 and heart rate from the watch. More apps: see [Compatibility](#compatibility).
+Tested with *Rowing Workout* on iPhone and Apple Watch: the session appears in Apple Fitness as
+"Indoor Rowing" with the distance from the S4 and heart rate from the watch.
+
+### Buttons
+
+| Button | Short press | Hold |
+|---|---|---|
+| Display button | next screen | 3 s: open or close the hotspot |
+| PiSugar 3, lower (next to the LEDs) | show battery level; short press then hold switches the box on | while running: shut down cleanly; short press plus hold cuts the power (only if the box hangs) |
+| PiSugar 3, upper | status screen | switch the language |
 
 ## Compatibility
 
 ### Apps
 
 Rowbox shows up as a standard Bluetooth FTMS rower named **"WaterRower S4"**. "Should work" means
-the vendor says it supports FTMS rowers in general; it has not been tested with Rowbox yet.
-Reports are welcome.
+the vendor supports FTMS rowers in general; it has not been tested with Rowbox yet. Reports are
+welcome.
 
 | App | Platform | With Rowbox | Notes |
 |---|---|---|---|
@@ -255,11 +298,52 @@ export or an app that uploads.
 | A1 / A1 BLE, Performance Ergometer | no / unclear | Different monitor, not the S4 protocol |
 | Series I–III, S3 | no | Unless upgraded to an S4 |
 
-Which S4 do you have? Switch it on, press **advanced** nine times, then **OK**: the firmware is
-shown bottom right (USB monitors: 2.01, 2.03 or 2.1). The Mini-USB port sits on the back of the
-S4. When Rowbox is connected, the S4 shows "PC". Details: [docs/s4-notes.md](docs/s4-notes.md).
+**Which S4 do you have?** Switch it on, press **advanced** nine times, then **OK**: the firmware is
+shown bottom right. USB monitors run 2.01, 2.03 or the current 2.1; WaterRower updates older ones
+on request. Rowbox also shows the version in the portal. The Mini-USB port sits on the back of the
+S4; while Rowbox is connected the S4 shows "PC". Details: [docs/s4-notes.md](docs/s4-notes.md).
 
-## Testing without the rower
+## Troubleshooting
+
+- **"Killed" during installation:** the Zero has only 512 MB RAM and apt sometimes runs out. Run
+  `setup.sh` again, it continues where it stopped.
+- **PiSugar download is slow:** the PiSugar package server can be slow from Europe. Just wait.
+- **Wi-Fi with WPA2/WPA3 mixed-mode routers:** with current Raspberry Pi OS the Zero 2 W cannot
+  connect to them ([raspberrypi/linux#7634](https://github.com/raspberrypi/linux/issues/7634)).
+  `setup.sh` fixes this by adding `brcmfmac.feature_disable=0x2282000` to
+  `/boot/firmware/cmdline.txt`; nothing to do. Tested with kernel 6.18.
+- **The box is reachable under a different name:** use the hostname you set in Raspberry Pi
+  Imager, e.g. `http://rower.local`.
+- **LED and backlight are not dimmed on purpose:** the Whisplay library dims them in software,
+  which makes them flicker whenever the CPU is busy.
+- **The S4 stays on while the box is connected,** which drains its batteries. Switch the box off
+  (hold the PiSugar button) or unplug it after rowing.
+
+## Privacy
+
+Rowbox needs no account and no cloud. Your sessions stay on the box until you export them. The only
+request to the internet is optional: in the "real weather" mode the box fetches the current weather
+from [Open-Meteo](https://open-meteo.com) for your *virtual* position on the route, about every
+15 minutes, and only when it is online. Choose a fixed mood or "real time, no weather" in
+Settings → Journey to switch it off.
+
+## Development
+
+### How it works
+
+```
+S4 monitor --USB serial--> rowbridge.py --Bluetooth FTMS--> app
+                               |
+                               +--> /run/rowbridge/state.json --> rowdisplay.py (Whisplay)
+                               +--> /var/lib/rowbridge/sessions.jsonl (logbook)
+rowportal.py: web portal on port 80, phone display, Wi-Fi hotspot fallback, settings in /etc/rowbox.json
+static/river3d.js: 3D river (three.js) that runs in the phone's browser
+```
+
+The S4 USB protocol is documented by WaterRower ("Water Rower S4 S5 USB Protocol Iss 1 04") and in
+several open-source projects. More on the S4: [docs/s4-notes.md](docs/s4-notes.md).
+
+### Testing without the rower
 
 ```sh
 sudo systemctl stop rowbridge
@@ -269,64 +353,30 @@ sudo python3 ~/rowbridge.py ~/s4sim
 The simulator rows for 60 s, pauses 20 s and repeats. `Ctrl+C`, `kill %1` and
 `sudo systemctl start rowbridge` return to normal.
 
-## Already handled by setup.sh
+### Contributing
 
-- **Wi-Fi with WPA2/WPA3 mixed-mode routers.** With current Raspberry Pi OS the Zero 2 W cannot
-  connect to routers in mixed WPA2/WPA3 mode
-  ([raspberrypi/linux#7634](https://github.com/raspberrypi/linux/issues/7634)). `setup.sh` fixes
-  this automatically by adding `brcmfmac.feature_disable=0x2282000` to
-  `/boot/firmware/cmdline.txt`. After the reboot these networks work; there is nothing to do.
-  Tested with kernel 6.18.
+Issues, ideas and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). It also
+explains how to add a journey and a real river course.
 
-## S4 firmware
-
-Rowbox reads the S4's firmware version when it connects and shows it in the portal (Status) and
-on the display (Info). On the S4 itself: switch it on, press **advanced** nine times, then **OK**;
-the version appears bottom right. USB S4 monitors run 2.01, 2.03 or the current 2.1; WaterRower
-updates older ones on request. There are no public release notes. Please include the version in
-bug reports.
-
-## Known issues
-- **"Killed" during installation:** the Zero has only 512 MB RAM and apt sometimes runs out.
-  Run `setup.sh` again, it continues where it failed.
-- **PiSugar download is slow:** the PiSugar package server can be slow from Europe. Just wait.
-- **LED and backlight are not dimmed on purpose.** The Whisplay library dims them in software,
-  which makes them flicker whenever the CPU is busy.
-- The S4 stays switched on while the box is connected and running, which drains its batteries.
-  Switch the box off (hold the PiSugar button) or unplug it after rowing.
-
-## How it works
-
-```
-S4 monitor --USB serial--> rowbridge.py --Bluetooth FTMS--> app
-                               |
-                               +--> /run/rowbridge/state.json --> rowdisplay.py (Whisplay)
-                               +--> /var/lib/rowbridge/sessions.jsonl (logbook)
-rowportal.py: web portal on port 80, Wi-Fi hotspot fallback, settings in /etc/rowbox.json
-```
-
-The S4 USB protocol is documented by WaterRower ("Water Rower S4 S5 USB Protocol Iss 1 04")
-and in several open source projects. More on the S4 (protocol details, firmware, hardware):
-[docs/s4-notes.md](docs/s4-notes.md).
-
-## Related projects
+### Related projects
 
 - [PiRowFlo](https://github.com/inonoob/pirowflo): S4/SmartRow to BLE and ANT+ on a Raspberry Pi
 - [OpenRowingMonitor](https://github.com/JaapvanEkris/openrowingmonitor): rowing monitor with its own flywheel sensor
 - [ESP Rowing Monitor](https://github.com/Abasz/ESPRowingMonitor): the same on an ESP32
 
-## Contributing
+## License and credits
 
-Issues, ideas and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Rowbox is licensed under **GPL-3.0-or-later**, see [LICENSE](LICENSE). You may use, change and
+share it, also commercially, as long as you publish the full source of your version under the same
+license.
 
-## License
-
-GPL-3.0-or-later, see [LICENSE](LICENSE). `static/three.module.min.js` is
-[three.js](https://threejs.org) (MIT, see [static/LICENSE.three.txt](static/LICENSE.three.txt)). The river routes in `static/routes/` are
-derived from [OpenStreetMap](https://www.openstreetmap.org/copyright) data, © OpenStreetMap contributors,
-and are available under the [ODbL 1.0](https://opendatacommons.org/licenses/odbl/); bridge names come from
-[Wikidata](https://www.wikidata.org) (CC0), terrain heights from the [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen/Tilezen, open data with attribution). You may use, change and share Rowbox freely, also
-commercially, as long as you publish the full source of your version under the same license.
+| Part | Source and license |
+|---|---|
+| `static/three.module.min.js` | [three.js](https://threejs.org), MIT ([static/LICENSE.three.txt](static/LICENSE.three.txt)) |
+| River routes in `static/routes/` | Derived from [OpenStreetMap](https://www.openstreetmap.org/copyright), © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) |
+| Bridge names | [Wikidata](https://www.wikidata.org), CC0 |
+| Terrain heights | [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen/Tilezen), open data with attribution |
+| Weather | [Open-Meteo](https://open-meteo.com), free for non-commercial use |
 
 No warranty. You build and use the box at your own risk, especially the LiPo battery: use a proper
 cell with protection circuit and don't leave it charging unattended.

@@ -1,16 +1,21 @@
 # Rowbox
 
-**Eine kleine Box mit Akku, die dem WaterRower-S4-Monitor Bluetooth beibringt.**
+**Bluetooth für den WaterRower S4. Eine kleine Open-Source-Box mit Display, Kraftkurve, Logbuch
+und einer 3D-Flussfahrt auf dem Handy.**
 
-Der S4-Monitor des WaterRower hat einen USB-Anschluss, aber kein Bluetooth (beim Lite und bei
-älteren Original- und Metallic-Modellen). Die Rowbox wird dort angesteckt, liest den Monitor aus
-und meldet sich als normales **Bluetooth-FTMS-Rudergerät**, das Fitness-Apps verstehen. So landen
-die Einheiten zum Beispiel über *Rowing Workout* auf der Apple Watch in Apple Health und Fitness.
+[![Lizenz: GPL v3](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
+![Raspberry Pi Zero 2 W](https://img.shields.io/badge/hardware-Raspberry%20Pi%20Zero%202%20W-c51a4a.svg)
+![Bluetooth FTMS](https://img.shields.io/badge/Bluetooth-FTMS%20rower-0a6cff.svg)
+![Sprachen](https://img.shields.io/badge/languages-English%20%7C%20Deutsch-555.svg)
 
-Sie läuft auf einem Raspberry Pi Zero 2 W mit PiSugar-3-Akku und PiSugar-Whisplay-Display, oder
-schlanker ohne Akku (**Light**) oder ohne Display und Akku (**Ultralight**).
+[English README](README.md)
 
-[English](README.md)
+Der Leistungsmonitor S4 des WaterRower hat einen USB-Anschluss, aber kein Bluetooth. Die Rowbox
+steckt an diesem Anschluss, liest den Monitor aus und meldet sich als normales
+**Bluetooth-FTMS-Rudergerät**, das Fitness-Apps verstehen. So landen deine Einheiten in Apps wie
+*Rowing Workout* auf der Apple Watch und von dort in Apple Health. Dazu zeigt sie dein Training auf
+ihrem eigenen Display oder auf dem Handy, zeichnet jeden Zug auf und lässt dich echte Flüsse
+rudern.
 
 <p align="center">
   <img src="docs/box.jpg" height="380" alt="Rowbox im 3D-gedruckten Gehäuse mit der Kraftkurve der letzten Einheit">
@@ -18,116 +23,148 @@ schlanker ohne Akku (**Light**) oder ohne Display und Akku (**Ultralight**).
 </p>
 <p align="center"><sub>Die Box im Gehäuse und sechs ihrer Ansichten: Status, Training mit Taktgeber, Kraftkurve, Live-Kurve vom Paddelrad, Reise und eine Trophäe.</sub></p>
 
-## Den Rhein in 3D rudern
+## Auf einen Blick
 
-Jeder Meter auf dem WaterRower bringt dich auf einem echten Fluss voran. Auf dem Handy zeigt die
-Reise-Ansicht das als kleine 3D-Szene: einen Einer auf dem Wasser, und der Ruderer darin bewegt sich
-mit **deinen** Schlägen. Jeder Durchzug beginnt mit deinem echten Zuganfang, erst die Beine, dann
-der Oberkörper, und das Boot schiebt nach der Form deiner Kraftkurve. Hörst du auf, wartet er am
-Zuganfang.
+| | |
+|---|---|
+| **Verbindet** | WaterRower S4 (USB) → Bluetooth-FTMS-Rudergerät für iPhone, Apple Watch, Android, Meta Quest und mehr |
+| **Zeigt** | Live-Werte, Kraftkurve, Taktgeber und Reise auf dem Display der Box, im Browser und im Vollbild auf Handy oder Tablet |
+| **Zeichnet auf** | Jede Einheit im Logbuch mit Sekundenwerten, Export als FIT, TCX, CSV oder JSON für Strava, Garmin Connect, Intervals.icu |
+| **Motiviert** | Reisen auf echten Strecken, ein 3D-Rhein von Basel bis Rotterdam mit echtem Gelände, Landmarken und Wetter, entspannte Trophäen |
+| **Läuft** | Auf einem Raspberry Pi Zero 2 W, mit oder ohne Akku und Display, auf Wunsch ganz ohne Internet |
+| **Kostet** | Etwa 35–100 € für die Teile, je nach [Variante](#varianten) |
 
-<p align="center"><img src="docs/rhine_3d.jpg" width="900" alt="3D-Reise auf dem Rhein: Handyansicht und vier Szenen mit Loreley, Pfalz bei Kaub, Burg Katz am Abend und Regen an Burg Rheinstein"></p>
+## Inhalt
 
-- **Der echte Rhein, Basel bis Rotterdam (834 km):** der Flussverlauf aus OpenStreetMap, echtes
-  Gelände aus Höhendaten (im Mittelrheintal steigen die Hänge 150–200 m an), 74 echte Brücken und
-  242 Landmarken mit Namen: Burgen von Rheinstein bis Stolzenfels, die Pfalz bei Kaub mitten im
-  Fluss, Dome, Kirchen, Türme, die Loreley und die Windmühlen von Kinderdijk. Eine kleine Karte
-  zeigt, wo du bist.
-- **Echtes Licht und Wetter:** Die Sonne steht dort, wo sie an diesem Ort und zu dieser Zeit
-  wirklich steht, an einem Novemberabend ruderst du also in die Dämmerung. Ist die Box online,
-  holt sie das aktuelle Wetter an deiner virtuellen Position: Wolken nach Bewölkung, Regen und
-  Schnee, Nebel nach Sichtweite, Wind auf dem Wasser und ein kleines Schild wie „9 °C · Regen“.
-- **Läuft offline:** Die Strecke liegt auf der Box (etwa 85 KB), beim Rudern ist kein Kartendienst
-  nötig. Ohne Internet bleibt der Himmel einfach freundlich.
-- **Live-Werte auf dem Fluss:** Eine Karte unter der Szene zeigt beim Rudern Pace, Schlagzahl und
-  Watt, dazu die nächste Etappe und das Ziel.
-- **Tablet oder Handy quer = Cockpit:** Der Fluss füllt den ganzen Bildschirm, darüber Glaskarten
-  für die Strecke, die nächste Etappe und fünf Live-Werte (Meter, Pace, Schlagzahl, Watt, Zeit).
-  Der Bildschirm bleibt beim Rudern an.
-- **Nach deinem Geschmack:** Unter Einstellungen → Reise wählst du, was die Reise-Ansicht zeigt
-  (3D-Ansicht, Live-Werte, nächste Etappe, Orte, Ziel, kleine Karte, Wetter-Schild), die Farben
-  von Boot, Blättern und Shirt des Ruderers und das Licht: echte Uhrzeit und Wetter oder eine
-  feste Stimmung (sonniger Tag, Sonnenuntergang, nebliger Morgen, Regenwetter).
-- **Gemacht fürs Handy:** three.js läuft im Browser des Handys, der Pi liefert nur die Dateien.
-  Die Szene rechnet nur, solange die Reise-Ansicht sichtbar ist.
-
-<p align="center"><img src="docs/cockpit.jpg" width="900" alt="Reise als Cockpit auf dem Tablet quer: 3D-Fluss über den ganzen Bildschirm, Strecke oben, nächste Etappe und Ziel rechts, fünf Live-Werte unten"></p>
-<p align="center"><sub>Quer auf dem Tablet: die Reise als Cockpit.</sub></p>
-
-Andere Strecken zeigen vorerst einen erzeugten Fluss; `tools/build_route.py` macht aus
-OpenStreetMap-Daten eine Streckendatei (siehe [CONTRIBUTING](CONTRIBUTING.md), auf Englisch).
+- [Funktionen](#funktionen)
+- [Den Rhein in 3D rudern](#den-rhein-in-3d-rudern)
+- [Teile](#teile)
+- [Installation](#installation)
+- [Benutzung](#benutzung)
+- [Kompatibilität](#kompatibilität)
+- [Fehlerbehebung](#fehlerbehebung)
+- [Datenschutz](#datenschutz)
+- [Entwicklung](#entwicklung)
+- [Lizenz und Quellen](#lizenz-und-quellen)
 
 ## Funktionen
 
-- **Brücke S4 → Bluetooth FTMS:** Distanz, Schlagzahl, Schläge, Pace, Leistung, Kalorien, Zeit.
-  Ein Reset aus der App wird an den S4 weitergegeben. Der Puls geht mit, wenn der S4 einen
-  Pulsempfänger hat. Außerdem meldet die Box Hersteller, Modell und Version
-  (Device-Information-Dienst), was manche Apps vor dem Verbinden verlangen.
-- **Display:** Status (Brücke, S4, App, WLAN, Akku), Training live, Zusammenfassung nach der
-  Einheit, Verlauf der letzten Einheiten. Geht nach einer Weile aus, die Taste weckt es.
-- **Tasten:** Die Taste am Display wechselt mit kurzem Druck die Ansicht, drei Sekunden halten
-  öffnet den Hotspot (oder schließt ihn). Die untere Taste am PiSugar 3 (bei den Akku-LEDs) zeigt
-  mit kurzem Druck den Akkustand auf den vier LEDs und schaltet die Box mit kurz drücken und dann
-  lang halten ein (die LEDs zählen hoch, dann startet sie). Läuft die Box, fährt lang halten
-  sie sauber herunter, bevor der Strom ausgeht; kurz drücken und dann lang halten trennt den Strom
-  sofort (nur nötig, wenn die Box hängt). Die obere PiSugar-Taste ist eine Abkürzung: kurz zeigt
-  die Statusanzeige, lang wechselt die Sprache.
-- **Logbuch:** Jede Einheit wird auf der Box gespeichert (Distanz, Zeit, Pace, Schnitt- und
-  Spitzen-Watt, Schlagzahl, Puls). Download als CSV oder JSON, und jede Einheit als **FIT- oder
-  TCX-Datei** mit Werten pro Sekunde für Strava, Garmin Connect, Intervals.icu und andere.
-- **Webportal** unter `http://<hostname>.local`: Status, WLAN, Logbuch, Protokolle, Einstellungen.
-  Mit Passwort.
-- **Live-Ansicht** im Browser: große Zahlen für Handy oder Tablet am Ruderer, dazu die
-  Kraftkurve jedes Zugs sowie Zug- und Rollphase.
-- **Handy als Display:** `http://<hostname>.local/anzeige` zeigt die Ansichten der Box im Vollbild
-  auf dem Handy: Training, Kraftkurve, Taktgeber, Live-Kurve, Reise und Status, gewechselt durch
-  Wischen nach links und rechts. Dreh das Handy oder ein Tablet quer, wird die Reise zum Cockpit:
-  der 3D-Fluss über den ganzen Bildschirm, die Live-Werte darüber. Der Bildschirm bleibt beim
-  Rudern an. Bei der Ultralight-Variante ist das dein Display. Die
-  Reise-Ansicht zeigt den [Fluss in 3D](#den-rhein-in-3d-rudern). Für das Wetter schickt die Box
-  deine virtuelle Position auf der Strecke, nicht deine, etwa alle 15 Minuten an
-  [Open-Meteo](https://open-meteo.com); abschalten kannst du das in den Einstellungen.
+### Bluetooth-Brücke
 
-  <p align="center"><img src="docs/phone_display.png" width="760" alt="Handy als Display: Training, Kraftkurve, Reise in 3D und Status"></p>
+- **Normales FTMS-Rudergerät:** Distanz, Schlagzahl, Schläge, Pace, Leistung, Kalorien und Zeit.
+  Apps sehen ein Rudergerät namens **"WaterRower S4"**.
+- **In beide Richtungen:** Ein Zurücksetzen in der App setzt auch den S4 zurück. Den Puls gibt die
+  Box weiter, wenn der S4 einen Pulsempfänger hat.
+- **Sauber gemeldet:** Die Box nennt Hersteller, Modell und Version (Device Information Service),
+  was manche Apps vor dem Verbinden verlangen. Sie liest die Firmware des S4 aus und zeigt sie im
+  Portal.
 
-  <p align="center"><img src="docs/portal.png" width="760" alt="Webportal auf dem Handy: Live-Ansicht, Reise und Auswertung einer Einheit"></p>
-  <p align="center"><sub>Webportal auf dem Handy: Live-Ansicht, Reise und die Auswertung einer Einheit.</sub></p>
-- **Kraftkurve:** Der S4 meldet alle 25 ms die Impulse seines Sensors am Paddelrad. Daraus
-  berechnet die Box die Form jedes Zugs, ganz ohne zusätzlichen Sensor. Sie erscheint live, auf
-  dem Display und pro Einheit im Logbuch (Durchschnitt, jeder einzelne Zug, Anfang und Ende der
-  Einheit im Vergleich).
-- **Taktgeber und Live-Kurve** auf dem Display: Ein Punkt läuft wie der Rollsitz (schnell im
-  Zug, langsam zurück) im eigenen Rhythmus oder mit fester Schlagzahl; Punkte darunter zeigen, ob
-  der Zug im Takt war. Die Live-Kurve zeigt das Tempo des Paddelrads der letzten sechs Sekunden.
-  Beides gibt es als eigene Ansicht und als Streifen in der Trainingsansicht (in den
-  Einstellungen umstell- und abschaltbar).
-- **Reise und Trophäen:** Jeder geruderte Meter bringt ein Boot auf einer echten Strecke voran
-  (Ärmelkanal, Rhein, Themse, Seine, Po, Nil, Jangtse, Mississippi, Amazonas, Murray, der Onyx in
-  der Antarktis oder über den Atlantik), dargestellt wie eine Navigation mit nächster Etappe,
-  Ziel und entspannt geschätzter Ankunft, auf dem Handy auch als [3D-Szene](#den-rhein-in-3d-rudern). Trophäen, etwa für die
-  ersten 10 km oder eine Stunde am Stück, erscheinen nach der Einheit auf dem Display. Keine
-  Serien, keine Fristen, nichts geht verloren; in den Einstellungen abschaltbar.
-- **Eigene Auswahl an Ansichten:** In den Einstellungen legst du fest, welche Ansichten die
-  Display-Taste durchblättert, was die Reise-Ansicht auf dem Handy zeigt und welche Farben das
-  3D-Boot hat.
-- **Pause mit Countdown:** In einer kurzen Pause bleibt das Display in der Trainingsansicht und
-  zeigt, wann die Einheit automatisch endet.
-- **MQTT (optional):** schickt die Werte an einen MQTT-Server; Home Assistant erkennt sie von
-  selbst.
-- **Hotspot als Rückfall:** Findet die Box kein bekanntes WLAN, öffnet sie ihr eigenes und zeigt
-  einen QR-Code. Scannen, die Einrichtungsseite öffnet sich von selbst, WLAN auswählen.
-- **Deutsch und Englisch:** Display, Webportal und Installationsskript. Die Sprache wird im
-  Einrichtungsassistenten gewählt und lässt sich im Portal jederzeit ändern.
+### An der Box
+
+- **Display:** Status, Training live, Zusammenfassung nach der Einheit, Verlauf der letzten
+  Einheiten, Taktgeber, Live-Kurve und Reise. Geht nach einer Weile aus, die Taste weckt es. Welche
+  Ansichten die Taste durchblättert, legst du selbst fest.
 - **Einrichtungsassistent:** Beim ersten Start führt das Display durch Sprache, WLAN, Webportal
-  (Anmeldung per QR-Code), S4 anschließen, App verbinden und einen Probeschlag. Jeder Schritt hakt
-  sich selbst ab, die Taste überspringt einen Schritt.
+  (Anmeldung per QR-Code), S4 und App verbinden und einen Testzug. Jeder Schritt hakt sich selbst ab.
+- **Tasten:** Kurz auf die Display-Taste blättert die Ansichten, 3 Sekunden halten öffnet den
+  Hotspot. Die PiSugar-Taste zeigt den Akkustand, schaltet die Box ein und fährt sie sauber herunter
+  ([Details](#tasten)).
+- **Pausen-Countdown, Töne, Uhr ohne WLAN:** In einer kurzen Pause zeigt das Display, wann die
+  Einheit automatisch endet; kurze Töne, wenn S4 oder App sich verbinden; die Echtzeituhr des
+  PiSugar hält die Zeiten im Logbuch auch ohne Internet richtig.
 
-  <p align="center"><img src="docs/wizard.png" width="560" alt="Einrichtungsassistent"></p>
-- **Uhrzeit ohne WLAN:** Die Zeit kommt aus der Echtzeituhr des PiSugar 3, damit stimmen die
-  Einträge im Logbuch auch offline.
-- **Töne:** kurze Klänge, wenn S4 oder App sich verbinden und wenn eine Einheit gespeichert ist
-  (abschaltbar).
-- **S4-Simulator**, um alles ohne Rudergerät zu testen.
+<p align="center"><img src="docs/wizard.png" width="560" alt="Einrichtungsassistent auf dem Display"></p>
+
+### Webportal
+
+Unter `http://<hostname>.local`, mit Passwort geschützt: Status, WLAN-Netze, Logbuch, Protokolle
+und alle Einstellungen. Die **Live-Ansicht** zeigt große Zahlen für Handy oder Tablet am Rudergerät,
+die Kraftkurve jedes Zugs sowie Zug- und Rollzeit.
+
+<p align="center"><img src="docs/portal.png" width="760" alt="Webportal auf dem Handy: Live-Ansicht, Reise und Auswertung einer Einheit"></p>
+<p align="center"><sub>Webportal auf dem Handy: Live-Ansicht, Reise und die Auswertung einer Einheit.</sub></p>
+
+### Handy und Tablet als Display
+
+`http://<hostname>.local/anzeige` zeigt die Ansichten der Box im Vollbild auf dem Handy: Training,
+Kraftkurve, Taktgeber, Live-Kurve, Reise und Status, gewechselt durch Wischen. Bei der
+Ultralight-Variante ist das dein Display.
+
+- **Hochkant und quer:** Jede Ansicht hat für beides ein eigenes Layout. Quer wird die Reise zum
+  Cockpit mit dem 3D-Fluss über den ganzen Bildschirm.
+- **Bleibt an:** Der Bildschirm sperrt sich nicht, solange die Anzeige offen ist.
+- **Wie eine App:** Vollbild-Knopf auf iPad und Android; auf dem iPhone die Seite zum Home-Bildschirm
+  hinzufügen, dann startet sie ohne Browserleisten.
+
+<p align="center"><img src="docs/phone_display.png" width="760" alt="Handy als Display: Training, Kraftkurve, Reise in 3D und Status"></p>
+
+### Kraftkurve, Taktgeber und Live-Kurve
+
+- **Kraftkurve:** Der S4 meldet alle 25 ms die Impulse seines Sensors am Paddelrad. Daraus berechnet
+  die Box die Form jedes Zugs, ganz ohne zusätzlichen Sensor. Live, auf dem Display und pro Einheit
+  im Logbuch (Durchschnitt, jeder einzelne Zug, Anfang und Ende im Vergleich).
+- **Taktgeber:** Ein Punkt läuft wie der Rollsitz, schnell im Zug, langsam beim Vorrollen, in deinem
+  eigenen Rhythmus oder in fester Schlagzahl. Punkte darunter zeigen, ob jeder Schlag im Takt war.
+- **Live-Kurve:** die Geschwindigkeit des Paddelrads der letzten sechs Sekunden.
+
+### Logbuch und Export
+
+Jede Einheit wird auf der Box gespeichert: Distanz, Zeit, Pace, mittlere und höchste Leistung,
+Schlagzahl, Puls und die Kraftkurve. Das Logbuch gibt es als CSV oder JSON, jede Einheit als
+**FIT- oder TCX-Datei** mit Sekundenwerten für Strava, Garmin Connect, Intervals.icu und andere.
+
+### Reisen und Trophäen
+
+Jeder geruderte Meter bringt ein Boot auf einer echten Strecke voran: Rhein, Themse, Seine, Po,
+Nil, Jangtse, Mississippi, Amazonas, Murray, Ärmelkanal, der Onyx in der Antarktis oder über den
+Atlantik. Dargestellt wie ein Navi mit nächster Etappe, Ziel und entspannt geschätzter Ankunft.
+Trophäen, etwa für die ersten 10 km, erscheinen nach der Einheit. Keine Serien, keine Fristen,
+nichts geht verloren; abschaltbar. Auf dem Rhein ist die Reise eine [3D-Szene](#den-rhein-in-3d-rudern).
+
+### Verbindungen
+
+- **Hotspot als Rückfall:** Findet die Box kein bekanntes WLAN, öffnet sie ihren eigenen Hotspot und
+  zeigt einen QR-Code; die Einrichtungsseite öffnet sich von selbst. Eine **Hotspot-Karte** zum
+  Ausdrucken hält Name, Passwort und QR-Code bereit.
+- **MQTT (optional):** schickt die Werte an einen MQTT-Server; Home Assistant übernimmt sie
+  automatisch.
+- **Deutsch und Englisch:** Display, Webportal und Setup-Skript, jederzeit umschaltbar.
+
+## Den Rhein in 3D rudern
+
+Auf dem Handy zeigt die Reise-Ansicht einen Einer auf dem Fluss, und der Ruderer darin bewegt sich
+mit **deinen** Schlägen: Jeder Durchzug beginnt mit deinem echten Zuganfang, erst die Beine, dann
+der Oberkörper, und das Boot schiebt nach der Form deiner Kraftkurve. Hörst du auf, wartet er am
+Zuganfang.
+
+<p align="center"><img src="docs/rhine_3d.jpg" width="900" alt="3D-Reise auf dem Rhein: Handyansicht und vier Szenen mit Loreley, Pfalz bei Kaub, Burg Katz und Regen an Burg Rheinstein"></p>
+
+- **Der echte Rhein, Basel bis Rotterdam (834 km):** der Flussverlauf aus OpenStreetMap, echtes
+  Gelände aus Höhendaten (im Mittelrheintal steigen die Hänge 150–200 m an), 74 Brücken und 242
+  Landmarken mit Namen, von Burg Rheinstein und der Loreley bis zu den Windmühlen von Kinderdijk.
+  Eine kleine Karte zeigt, wo du bist.
+- **Echtes Licht und Wetter:** Die Sonne steht dort, wo sie an diesem Ort und zu dieser Zeit
+  wirklich steht. Ist die Box online, kommt das aktuelle Wetter an deiner virtuellen Position dazu:
+  Wolken, Regen, Schnee, Nebel und Wind auf dem Wasser. Oder du wählst eine feste Stimmung:
+  sonniger Tag, Sonnenuntergang, nebliger Morgen oder Regenwetter.
+- **Live-Werte auf dem Fluss:** Pace, Schlagzahl und Watt in einer Karte unter der Szene, dazu
+  nächste Etappe und Ziel.
+- **Cockpit im Querformat:** Auf dem Tablet oder dem quer gedrehten Handy füllt der Fluss den
+  Bildschirm, Strecke, nächste Etappe und fünf Live-Werte liegen auf Glaskarten darüber.
+- **Nach deinem Geschmack:** Du wählst, was die Ansicht zeigt, und die Farben von Boot, Blättern und
+  Shirt des Ruderers (Einstellungen → Reise).
+- **Schont die Box:** three.js läuft im Browser des Handys und passt die Auflösung dem Gerät an; der
+  Pi liefert nur die Dateien. Die Strecke liegt auf der Box, beim Rudern ist kein Kartendienst
+  nötig.
+
+<p align="center"><img src="docs/cockpit.jpg" width="900" alt="Reise als Cockpit auf dem Tablet im Querformat"></p>
+<p align="center"><sub>Quer auf dem Tablet: die Reise als Cockpit.</sub></p>
+
+<p align="center"><img src="docs/moods.jpg" width="900" alt="Die vier festen Stimmungen: sonniger Tag, Sonnenuntergang, nebliger Morgen, Regenwetter"></p>
+<p align="center"><sub>Feste Stimmungen, wenn dir ein bestimmtes Licht lieber ist als das echte.</sub></p>
+
+Andere Strecken zeigen vorerst einen erzeugten Fluss; `tools/build_route.py` macht aus
+OpenStreetMap-Daten eine Streckendatei (siehe [CONTRIBUTING](CONTRIBUTING.md), auf Englisch).
 
 ## Teile
 
@@ -139,7 +176,7 @@ OpenStreetMap-Daten eine Streckendatei (siehe [CONTRIBUTING](CONTRIBUTING.md), a
 | PiSugar Whisplay (Display) | ✓ | ✓ | – |
 | PiSugar 3 (Akku) | ✓ | – (USB-Powerbank oder Netzteil) | – (USB-Powerbank oder Netzteil) |
 | Bluetooth FTMS, Kraftkurve, Logbuch, FIT/TCX, Reisen, Webportal, MQTT | ✓ | ✓ | ✓ |
-| Handy als Display (Ansichten zum Wischen, mit Taktgeber und Live-Kurve) | ✓ | ✓ | ✓ |
+| Handy und Tablet als Display, 3D-Fluss | ✓ | ✓ | ✓ |
 | Display an der Box, Töne, Einrichtungsassistent | ✓ | ✓ | – |
 | Akkuanzeige, Ausschalttaste, Uhrzeit ohne WLAN | ✓ | – | – |
 | Teilekosten (ca.) | 100 € | 70 € | 35 € |
@@ -153,7 +190,7 @@ willkommen. Ohne PiSugar die Box vor dem Ausstecken im Webportal ausschalten.
 | Teil | Hinweis |
 |---|---|
 | Raspberry Pi Zero 2 W | mit eingelöteter Stiftleiste |
-| [PiSugar 3](https://pisugar.com) | Akku mit 1.200 mAh, sitzt unter dem Pi ([Software](https://github.com/PiSugar/pisugar-power-manager-rs)). Optional: Eine USB-Powerbank geht auch, dann fehlen nur Akkuanzeige, Uhr und Ausschalttaste (Ausschalten dann im Webportal) |
+| [PiSugar 3](https://pisugar.com) | Akku mit 1.200 mAh, sitzt unter dem Pi ([Software](https://github.com/PiSugar/pisugar-power-manager-rs)). Optional: Eine USB-Powerbank geht auch, dann fehlen nur Akkuanzeige, Uhr und Ausschalttaste |
 | [PiSugar Whisplay HAT](https://pisugar.com) | 1,69"-LCD, Lautsprecher, Mikrofone, Taste, RGB-LED ([Treiber](https://github.com/PiSugar/whisplay)) |
 | microSD-Karte | ab 8 GB |
 | USB-Kabel | Mini-USB (S4) auf Micro-USB (Pi), oder Mini-USB-Kabel plus Micro-USB-OTG-Adapter |
@@ -165,11 +202,10 @@ Stromanschluss.
 <p align="center"><img src="docs/inside.jpg" width="640" alt="Rowbox ohne Gehäuse: oben das Whisplay-Display, darunter Pi Zero 2 W und PiSugar 3 mit Akku"></p>
 <p align="center"><sub>Ohne Gehäuse: oben das Whisplay-Display, darunter der Pi Zero 2 W und der PiSugar 3 mit Akku.</sub></p>
 
-
 ## Installation
 
 1. Mit dem Raspberry Pi Imager **Raspberry Pi OS Lite (64-bit)** schreiben. In den Einstellungen
-   Hostname (zum Beispiel `rowbox`), Benutzer, Passwort, WLAN festlegen und SSH einschalten.
+   Hostname (zum Beispiel `rowbox`), Benutzer, Passwort und WLAN festlegen und SSH einschalten.
 2. Starten, ein paar Minuten warten (der erste Start dauert auf dem Zero lange), dann anmelden:
    `ssh <benutzer>@<hostname>.local`
 3. Installieren:
@@ -180,15 +216,20 @@ Stromanschluss.
    sudo reboot
    ```
    Das richtet Brücke, Anzeige und Portal als Dienste ein, dazu die PiSugar-Werkzeuge, den
-   Whisplay-Treiber (baut ein Kernelmodul, dauert eine Weile) und den WLAN-Fix für gemischte WPA2/WPA3-Router (siehe unten).
-4. Nach dem Neustart startet der Einrichtungsassistent auf dem Display und fragt zuerst nach der
-   Sprache (Taste drücken wechselt, nach ein paar Sekunden geht es von selbst weiter). Das Passwort
-   fürs Portal steht außerdem unter **Info**.
+   Whisplay-Treiber (baut ein Kernelmodul, dauert eine Weile) und den WLAN-Fix für gemischte
+   WPA2/WPA3-Router.
+4. Nach dem Neustart startet der Einrichtungsassistent auf dem Display. Das Passwort fürs Portal
+   steht außerdem unter **Info**.
 
-   `setup.sh` spricht je nach Systemsprache Deutsch oder Englisch; festlegen lässt es sich mit
-   `sudo bash rowbox/setup.sh --lang de` (oder `--lang en`).
+`setup.sh` spricht je nach Systemsprache Deutsch oder Englisch; festlegen lässt es sich mit
+`--lang de` oder `--lang en`.
 
-### Light oder Ultralight installieren
+**Aktualisieren** später mit:
+```sh
+cd ~/rowbox && git pull && sudo bash setup.sh && sudo reboot
+```
+
+### Light und Ultralight
 
 Schritt 3 mit einer oder zwei Optionen (siehe [Varianten](#varianten)):
 
@@ -197,34 +238,34 @@ sudo bash rowbox/setup.sh --no-pisugar                # Light: Display, kein Akk
 sudo bash rowbox/setup.sh --no-display --no-pisugar   # Ultralight: kein Display, kein Akku
 ```
 
-Ultralight hat keinen Einrichtungsassistenten: `setup.sh` zeigt am Ende das Passwort fürs Portal
-und den Namen des Hotspots (später nachsehen mit `sudo grep password /etc/rowbox.json`). Danach in
-der App mit **"WaterRower S4"** verbinden und das Portal unter `http://<hostname>.local` öffnen.
+Ultralight hat keinen Einrichtungsassistenten: `setup.sh` zeigt am Ende das Passwort fürs Portal,
+den Namen des Hotspots und einen QR-Code (das Passwort später nachsehen mit
+`sudo grep password /etc/rowbox.json`). Danach in der App mit **"WaterRower S4"** verbinden,
+`http://<hostname>.local/anzeige` auf dem Handy öffnen und das Handy ans Rudergerät stellen.
 
-**Dein Handy ist das Display:** `http://<hostname>.local/anzeige` öffnen und das Handy ans
-Rudergerät stellen. Wischen nach links und rechts wechselt zwischen Training, Kraftkurve,
-Taktgeber, Live-Kurve, Reise und Status. Tipp: Seite zum Home-Bildschirm hinzufügen und die
-automatische Sperre beim Rudern ausschalten, damit der Bildschirm an bleibt.
-
-**Neues WLAN ohne Display:** Findet die Box kein bekanntes WLAN (zum Beispiel an einem neuen Ort),
-öffnet sie nach etwa einer Minute (zwei Minuten nach dem Einschalten) ihren eigenen Hotspot. Mit dem
-Handy verbinden, mit Name und Passwort aus `setup.sh` oder über den QR-Code, den `setup.sh` anzeigt.
-Die Einrichtungsseite öffnet sich von selbst (sonst `http://10.42.0.1` aufrufen); mit demselben
-Passwort anmelden, unter **WLAN** das Netz wählen, und die Box verbindet sich. Tipp: die
-**Hotspot-Karte** ausdrucken (Portal → Einstellungen → Hotspot → Karte zum Ausdrucken) und auf die
-Box kleben, dann sind Name, Passwort und QR-Code immer zur Hand. Solange niemand verbunden ist,
-probiert die Box alle zwei Minuten die bekannten Netze und schließt den Hotspot dann von selbst.
+**Neues WLAN ohne Display:** Findet die Box kein bekanntes WLAN, öffnet sie nach etwa einer Minute
+(zwei Minuten nach dem Einschalten) ihren eigenen Hotspot. Mit Name und Passwort aus `setup.sh` oder
+über den QR-Code verbinden, die Einrichtungsseite öffnet sich von selbst (sonst `http://10.42.0.1`),
+und unter **WLAN** das Netz wählen. Tipp: die **Hotspot-Karte** ausdrucken (Portal → Einstellungen →
+Hotspot) und auf die Box kleben.
 
 ## Benutzung
 
 1. S4 einschalten und mit der Box verbinden.
-2. In der App mit dem Rudergerät **"WaterRower S4"** verbinden. Auf dem iPhone geschieht das in
-   der App, nicht in den Bluetooth-Einstellungen von iOS.
+2. In der App mit dem Rudergerät **"WaterRower S4"** verbinden. Auf dem iPhone geschieht das in der
+   App, nicht in den Bluetooth-Einstellungen von iOS.
 3. Rudern. Das Display springt von selbst auf die Trainingsansicht.
 
-Getestet mit *Rowing Workout* auf iPhone und Apple Watch: Die Einheit erscheint in Apple Fitness
-als "Rudern indoor", mit der Distanz vom S4 und dem Puls von der Uhr. Weitere Apps:
-siehe [Kompatibilität](#kompatibilität).
+Getestet mit *Rowing Workout* auf iPhone und Apple Watch: Die Einheit erscheint in Apple Fitness als
+"Rudern indoor", mit der Distanz vom S4 und dem Puls von der Uhr.
+
+### Tasten
+
+| Taste | Kurz drücken | Halten |
+|---|---|---|
+| Display-Taste | nächste Ansicht | 3 Sekunden: Hotspot öffnen oder schließen |
+| PiSugar 3, unten (neben den LEDs) | Akkustand zeigen; kurz drücken und dann halten schaltet die Box ein | im Betrieb: sauber herunterfahren; kurz plus halten trennt den Strom (nur, wenn die Box hängt) |
+| PiSugar 3, oben | Statusansicht | Sprache umschalten |
 
 ## Kompatibilität
 
@@ -247,9 +288,9 @@ getestet ist es noch nicht. Rückmeldungen sind willkommen.
 | MyHomeFit, WaterRower Connect, Amazfit-Uhren | verschieden | unklar | Noch keine klare Aussage zu allgemeinen FTMS-Rudergeräten |
 
 Nicht kompatibel: ErgData, Aviron, Ergatta, Hydrow (nur Concept2 oder eigene Hardware), Zwift
-(kein Rudern), Apple GymKit (nur zertifizierte Studiogeräte), Strava und Garmin-Uhren direkt
-(keine Bluetooth-Rudergeräte; Garmin koppelt Rudergeräte nur über ANT+). Für Strava und Garmin
-Connect den FIT-Export nutzen oder eine App, die hochlädt.
+(kein Rudern), Apple GymKit (nur zertifizierte Studiogeräte), Strava und Garmin-Uhren direkt (keine
+Bluetooth-Rudergeräte; Garmin koppelt Rudergeräte nur über ANT+). Für Strava und Garmin Connect den
+FIT-Export nutzen oder eine App, die hochlädt.
 
 ### Rudergeräte
 
@@ -262,11 +303,53 @@ Connect den FIT-Export nutzen oder eine App, die hochlädt.
 | A1 / A1 BLE, Performance Ergometer | nein / unklar | Anderer Monitor, nicht das S4-Protokoll |
 | Series I–III, S3 | nein | Außer nach Umrüstung auf S4 |
 
-Welches S4 hast du? Einschalten, neunmal **advanced** drücken, dann **OK**: Unten rechts steht die
-Firmware (USB-Monitore: 2.01, 2.03 oder 2.1). Der Mini-USB-Anschluss sitzt hinten am S4. Ist die
-Rowbox verbunden, zeigt das S4 „PC“. Mehr dazu: [docs/s4-notes.md](docs/s4-notes.md) (Englisch).
+**Welchen S4 hast du?** Einschalten, neunmal **advanced** drücken, dann **OK**: Unten rechts steht die
+Firmware. USB-Monitore laufen mit 2.01, 2.03 oder der aktuellen 2.1; ältere aktualisiert WaterRower
+auf Anfrage. Die Rowbox zeigt die Version auch im Portal. Der Mini-USB-Anschluss sitzt hinten am S4;
+ist die Rowbox verbunden, zeigt der S4 „PC“. Mehr dazu: [docs/s4-notes.md](docs/s4-notes.md)
+(Englisch).
 
-## Testen ohne Rudergerät
+## Fehlerbehebung
+
+- **"Killed" bei der Installation:** Der Zero hat nur 512 MB Arbeitsspeicher, apt läuft manchmal
+  über. `setup.sh` einfach noch einmal starten, es macht dort weiter.
+- **PiSugar-Download langsam:** Der Paketserver von PiSugar ist aus Europa teils langsam. Abwarten.
+- **WLAN an Routern im gemischten Modus WPA2/WPA3:** Mit dem aktuellen Raspberry Pi OS verbindet
+  sich der Zero 2 W nicht damit ([raspberrypi/linux#7634](https://github.com/raspberrypi/linux/issues/7634)).
+  `setup.sh` behebt das, indem es `brcmfmac.feature_disable=0x2282000` in
+  `/boot/firmware/cmdline.txt` einträgt; zu tun ist nichts. Getestet mit Kernel 6.18.
+- **Die Box heißt anders:** Nimm den Hostnamen, den du im Raspberry Pi Imager vergeben hast, zum
+  Beispiel `http://rower.local`.
+- **LED und Display werden absichtlich nicht gedimmt:** Die Whisplay-Bibliothek dimmt per Software,
+  dann flackern beide, sobald der Prozessor rechnet.
+- **Der S4 bleibt an, solange die Box angeschlossen ist,** und leert dabei seine Batterien. Nach dem
+  Rudern die Box ausschalten (PiSugar-Taste halten) oder abziehen.
+
+## Datenschutz
+
+Die Rowbox braucht kein Konto und keine Cloud. Deine Einheiten bleiben auf der Box, bis du sie
+exportierst. Die einzige Anfrage ins Internet ist freiwillig: Im Modus „echtes Wetter“ holt die Box
+etwa alle 15 Minuten das aktuelle Wetter bei [Open-Meteo](https://open-meteo.com), und zwar für
+deine *virtuelle* Position auf der Strecke und nur, wenn sie online ist. Abschalten lässt sich das
+unter Einstellungen → Reise mit einer festen Stimmung oder „Echte Uhrzeit, ohne Wetter“.
+
+## Entwicklung
+
+### Aufbau
+
+```
+S4-Monitor --USB seriell--> rowbridge.py --Bluetooth FTMS--> App
+                                |
+                                +--> /run/rowbridge/state.json --> rowdisplay.py (Whisplay)
+                                +--> /var/lib/rowbridge/sessions.jsonl (Logbuch)
+rowportal.py: Webportal auf Port 80, Handy-Anzeige, Hotspot als Rückfall, Einstellungen in /etc/rowbox.json
+static/river3d.js: 3D-Fluss (three.js), läuft im Browser des Handys
+```
+
+Das USB-Protokoll des S4 hat WaterRower dokumentiert ("Water Rower S4 S5 USB Protocol Iss 1 04"),
+dazu mehrere Open-Source-Projekte. Mehr zum S4: [docs/s4-notes.md](docs/s4-notes.md) (Englisch).
+
+### Testen ohne Rudergerät
 
 ```sh
 sudo systemctl stop rowbridge
@@ -276,63 +359,30 @@ sudo python3 ~/rowbridge.py ~/s4sim
 Der Simulator rudert 60 Sekunden, pausiert 20 und beginnt von vorn. Mit `Ctrl+C`, `kill %1` und
 `sudo systemctl start rowbridge` geht es zurück in den Normalbetrieb.
 
-## Von setup.sh bereits gelöst
+### Mitmachen
 
-- **WLAN an Routern im gemischten Modus WPA2/WPA3.** Mit dem aktuellen Raspberry Pi OS verbindet
-  sich der Zero 2 W nicht mit Routern im gemischten Modus WPA2/WPA3
-  ([raspberrypi/linux#7634](https://github.com/raspberrypi/linux/issues/7634)). `setup.sh` behebt
-  das automatisch und trägt dafür `brcmfmac.feature_disable=0x2282000` in
-  `/boot/firmware/cmdline.txt` ein. Nach dem Neustart funktionieren solche Netze, zu tun ist
-  nichts. Getestet mit Kernel 6.18.
+Fehlermeldungen, Ideen und Pull Requests sind willkommen, siehe [CONTRIBUTING.md](CONTRIBUTING.md)
+(Englisch). Dort steht auch, wie eine Reise und ein echter Flussverlauf dazukommen.
 
-## S4-Firmware
-
-Die Rowbox liest beim Verbinden die Firmware-Version des S4 aus und zeigt sie im Portal (Status) und
-auf dem Display (Info). Am S4 selbst: einschalten, neunmal **advanced** drücken, dann **OK**; die
-Version steht unten rechts. S4 mit USB laufen mit 2.01, 2.03 oder der aktuellen 2.1; ältere
-aktualisiert WaterRower auf Anfrage. Öffentliche Release Notes gibt es nicht. Bitte die Version bei
-Fehlermeldungen angeben.
-
-## Bekannte Probleme
-- **"Killed" bei der Installation:** Der Zero hat nur 512 MB Arbeitsspeicher, apt läuft manchmal
-  über. `setup.sh` einfach noch einmal starten.
-- **PiSugar-Download langsam:** Der Paketserver von PiSugar ist aus Europa teils langsam. Abwarten.
-- **LED und Display werden absichtlich nicht gedimmt.** Die Whisplay-Bibliothek dimmt per Software,
-  dann flackern beide, sobald der Prozessor rechnet.
-- Der S4 bleibt eingeschaltet, solange die Box angeschlossen ist und läuft, und leert dabei seine
-  Batterien. Nach dem Rudern die Box ausschalten (PiSugar-Taste halten) oder abziehen.
-
-## Aufbau
-
-```
-S4-Monitor --USB seriell--> rowbridge.py --Bluetooth FTMS--> App
-                                |
-                                +--> /run/rowbridge/state.json --> rowdisplay.py (Whisplay)
-                                +--> /var/lib/rowbridge/sessions.jsonl (Logbuch)
-rowportal.py: Webportal auf Port 80, Hotspot als Rückfall, Einstellungen in /etc/rowbox.json
-```
-
-Mehr zum S4 selbst (Protokoll, Firmware, Hardware): [docs/s4-notes.md](docs/s4-notes.md) (Englisch).
-
-## Verwandte Projekte
+### Verwandte Projekte
 
 - [PiRowFlo](https://github.com/inonoob/pirowflo): S4/SmartRow nach BLE und ANT+ auf dem Raspberry Pi
 - [OpenRowingMonitor](https://github.com/JaapvanEkris/openrowingmonitor): Rudermonitor mit eigenem Sensor am Schwungrad
 - [ESP Rowing Monitor](https://github.com/Abasz/ESPRowingMonitor): dasselbe auf einem ESP32
 
-## Mitmachen
+## Lizenz und Quellen
 
-Fehlermeldungen, Ideen und Pull Requests sind willkommen, siehe [CONTRIBUTING.md](CONTRIBUTING.md) (Englisch).
+Die Rowbox steht unter der **GPL-3.0-or-later**, siehe [LICENSE](LICENSE). Du darfst sie nutzen,
+ändern und weitergeben, auch kommerziell, solange du den vollständigen Quellcode deiner Version
+unter derselben Lizenz veröffentlichst.
 
-## Lizenz
-
-GPL-3.0-or-later, siehe [LICENSE](LICENSE). `static/three.module.min.js` ist
-[three.js](https://threejs.org) (MIT, siehe [static/LICENSE.three.txt](static/LICENSE.three.txt)). Die Flussverläufe in `static/routes/`
-stammen aus [OpenStreetMap](https://www.openstreetmap.org/copyright)-Daten, © OpenStreetMap-Mitwirkende,
-und stehen unter der [ODbL 1.0](https://opendatacommons.org/licenses/odbl/); die Brückennamen kommen aus
-[Wikidata](https://www.wikidata.org) (CC0), die Geländehöhen aus den [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen/Tilezen, offene Daten mit Quellenangabe). Du darfst Rowbox frei nutzen, ändern und weitergeben,
-auch kommerziell, solange du den vollständigen Quellcode deiner Version unter derselben Lizenz
-veröffentlichst.
+| Teil | Quelle und Lizenz |
+|---|---|
+| `static/three.module.min.js` | [three.js](https://threejs.org), MIT ([static/LICENSE.three.txt](static/LICENSE.three.txt)) |
+| Flussverläufe in `static/routes/` | aus [OpenStreetMap](https://www.openstreetmap.org/copyright), © OpenStreetMap-Mitwirkende, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) |
+| Brückennamen | [Wikidata](https://www.wikidata.org), CC0 |
+| Geländehöhen | [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen/Tilezen), offene Daten mit Quellenangabe |
+| Wetter | [Open-Meteo](https://open-meteo.com), frei für nicht-kommerzielle Nutzung |
 
 Ohne Gewährleistung. Nachbau und Nutzung auf eigene Gefahr, besonders beim LiPo-Akku: eine
 ordentliche Zelle mit Schutzschaltung verwenden und nicht unbeaufsichtigt laden.
