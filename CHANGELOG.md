@@ -7,6 +7,8 @@
 - Hotspot card: printable label with hotspot name, password and Wi-Fi QR code (portal → Settings → Hotspot); `setup.sh` prints the QR code for boxes without display
 - Phone display: swipe bar with arrows at the bottom of every screen
 - Phone display: 3D view on the journey screen (three.js, bundled): single scull with the rower in the real stroke rhythm, banks, trees, towns with church, bridge and name sign at each stage; renders only while the journey screen is visible; the rowing motion follows the force curve of the last stroke (legs, then body; boat surges on the drive) on its own smooth stroke clock
+- Phone display, 3D view: the Rhine follows its real course from Basel to Rotterdam (OpenStreetMap), with 74 real bridges by name, towns on their real bank, a small map with your position and the OSM credit; other routes keep the generated river. Routes are built with `tools/build_route.py` and ship as small files in `static/routes/` (Rhine: ~100 KB), so the box stays offline
+- Phone display, 3D view: fixed the rower sometimes staying invisible after the first frame
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2

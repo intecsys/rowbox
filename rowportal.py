@@ -747,7 +747,7 @@ justify-content:space-between;text-align:left;border:2px solid transparent;min-h
 .prog i{display:block;height:100%;background:linear-gradient(90deg,#2f6fda,var(--sig))}
 #jr-svg{position:absolute;left:0;top:0;width:64px;height:100%;overflow:visible}
 .scene{height:30vh;margin:10px -20px 0;position:relative;overflow:hidden;background:#0d1a2b}
-.scene canvas{width:100%!important;height:100%!important;display:block;margin:0}
+.scene>canvas:first-child{width:100%!important;height:100%!important;display:block;margin:0}
 .scene:empty{display:none}
 
 #journey .grow{padding:6px 0}
@@ -999,7 +999,7 @@ def screen_json():
         eta = lambda v: "–" if v in (None, "–") else (L("an {t}", t=v) if ":" in v else L("ca. {t}", t=v))
         dec = lambda x: (f"{x:,.1f}" if x < 10 else f"{x:,.0f}").translate(
             str.maketrans(",.", ".,") if lang == "de" else {})
-        out["journey"] = {"river": st["river"], "goal": st["goal"], "next": st["next"], "done": st["done"],
+        out["journey"] = {"route": st["route"], "river": st["river"], "goal": st["goal"], "next": st["next"], "done": st["done"],
                           "next_left": dec(st["next_left"]), "left": dec(st["left"]),
                           "eta_next": eta(st["eta_next"]), "eta_goal": eta(st["eta_goal"]),
                           "km": st["km"], "total": st["total"], "stops": [[k, n] for k, n in st["stops"]]}
@@ -1557,9 +1557,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def static(self, name):
         """Dateien aus static/ (three.js, 3D-Flussfahrt): lange cachen, gzip einmal im Speicher."""
-        if name not in STATIC_FILES:
-            return self.send("", "text/plain", code=404)
+        ctype = STATIC_FILES.get(name)
+        if not ctype and re.fullmatch(r"routes/[a-z0-9_-]+\.json", name):
+            ctype = "application/json"           # echte Flussverlaeufe aus OpenStreetMap
         path = os.path.join(STATIC_DIR, name)
+        if not ctype or not os.path.isfile(path):
+            return self.send("", "text/plain", code=404)
         mtime = os.path.getmtime(path)
         if STATIC_CACHE.get(name, (None,) * 4)[3] != mtime:     # nach einem Update neu einlesen
             raw = open(path, "rb").read()
@@ -1572,7 +1575,7 @@ class Handler(BaseHTTPRequestHandler):
         use_gz = "gzip" in (self.headers.get("Accept-Encoding") or "")
         data = gz if use_gz else raw
         self.send_response(200)
-        self.send_header("Content-Type", STATIC_FILES[name])
+        self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "public, max-age=86400")
         self.send_header("ETag", tag)

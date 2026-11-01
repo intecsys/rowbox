@@ -281,7 +281,10 @@ Issues, ideas and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.
 ## License
 
 GPL-3.0-or-later, see [LICENSE](LICENSE). `static/three.module.min.js` is
-[three.js](https://threejs.org) (MIT, see [static/LICENSE.three.txt](static/LICENSE.three.txt)). You may use, change and share Rowbox freely, also
+[three.js](https://threejs.org) (MIT, see [static/LICENSE.three.txt](static/LICENSE.three.txt)). The river routes in `static/routes/` are
+derived from [OpenStreetMap](https://www.openstreetmap.org/copyright) data, © OpenStreetMap contributors,
+and are available under the [ODbL 1.0](https://opendatacommons.org/licenses/odbl/); bridge names come from
+[Wikidata](https://www.wikidata.org) (CC0). You may use, change and share Rowbox freely, also
 commercially, as long as you publish the full source of your version under the same license.
 
 No warranty. You build and use the box at your own risk, especially the LiPo battery: use a proper

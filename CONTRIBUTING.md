@@ -55,6 +55,19 @@ and a trophy for finishing are created automatically, and the settings list it b
 `D(german, english)`. Continents: `europe`, `africa`, `asia`, `namerica`, `samerica`,
 `australia`, `antarctica`, `ocean`. River kilometres may be rounded.
 
+### Real river course for the 3D view (optional)
+
+Without extra data the 3D view draws a generated river. To use the real course:
+
+1. Fetch the river from OpenStreetMap with Overpass, in pieces of about 100–150 km
+   (`relation(<osm id>); way(r)(<bbox>); out geom tags;`) and save each result as JSON.
+2. Add the stops' coordinates to `PLACES` in `tools/build_route.py` (same order as `stops`).
+3. Run `python3 tools/build_route.py <route> --osm part-*.json [--bridges wikidata.json]`.
+   It joins the pieces, smooths the line, scales it to the route's kilometres and writes
+   `static/routes/<route>.json`. The raw downloads stay out of the repo.
+
+Route files are derived from OpenStreetMap and fall under the ODbL; the 3D view shows the credit.
+
 ## Texts and languages
 
 UI texts are written in German inside `L("…")`; the English translation goes into the `EN` dict in

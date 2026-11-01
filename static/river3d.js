@@ -1,13 +1,56 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 The Rowbox authors
 // 3D-Flussfahrt fuer die Handy-Anzeige: Einer mit Ruderer im echten Schlagrhythmus,
-// Ufer, Baeume und Orte an den Etappen. Alles wird aus der Strecke erzeugt, ohne Kartendaten.
+// Ufer, Baeume, Bruecken und Orte. Gibt es fuer die Strecke einen echten Verlauf
+// (static/routes/<id>.json aus OpenStreetMap), folgt der Fluss ihm, sonst einem erfundenen.
 import * as THREE from "/static/three.module.min.js";
 
-const CHUNK = 200, AHEAD = 1600, BEHIND = 250, WIDTH = 90;
+const CHUNK = 200, AHEAD = 1600, BEHIND = 250;
 
-// Flussverlauf: x-Versatz der Flussmitte bei Strecke s (Meter); die Fahrt geht nach -z.
-const cx = s => 70 * Math.sin(s / 900) + 28 * Math.sin(s / 260 + 1.3);
+// ---------- Flusslinie ----------
+// Jede Linie liefert at(s) = [x, z, fx, fz]: Mitte und Fahrtrichtung bei Strecke s (Meter).
+// Die Fahrt geht grob nach -z; rechts in Fahrtrichtung ist (-fz, fx).
+function wiggle() {
+  const cx = s => 70 * Math.sin(s / 900) + 28 * Math.sin(s / 260 + 1.3);
+  return {
+    width: 90, real: false,
+    at(s) {
+      const d = (cx(s + 2) - cx(s - 2)) / 4, h = Math.hypot(d, 1);
+      return [cx(s), -s, d / h, -1 / h];
+    },
+  };
+}
+
+function polyline(X, Z, s0) {
+  const n = X.length, S = new Float64Array(n);
+  for (let i = 1; i < n; i++) S[i] = S[i - 1] + Math.hypot(X[i] - X[i - 1], Z[i] - Z[i - 1]);
+  function seg(t) {                                   // Abschnitt i mit S[i] <= t < S[i+1]
+    let lo = 0, hi = n - 2;
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (S[m] <= t) lo = m; else hi = m - 1; }
+    return lo;
+  }
+  function pt(t) {                                    // vor dem Anfang und nach dem Ende geradeaus weiter
+    const i = t <= 0 ? 0 : t >= S[n - 1] ? n - 2 : seg(t), L = S[i + 1] - S[i] || 1, k = (t - S[i]) / L;
+    return [X[i] + (X[i + 1] - X[i]) * k, Z[i] + (Z[i + 1] - Z[i]) * k];
+  }
+  return {
+    length: S[n - 1], X, Z,
+    at(s) {
+      const t = s - s0, a = pt(t - 6), b = pt(t + 6), c = pt(t), h = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      return [c[0], c[1], (b[0] - a[0]) / h, (b[1] - a[1]) / h];
+    },
+  };
+}
+
+// Echte Strecke aus OpenStreetMap: Punkte in Metern (Ost, Nord) ab der ersten Etappe.
+function realRoute(R) {
+  const n = R.pts.length / 2, X = [], Z = [];
+  for (let i = 0; i < n; i++) { X.push(R.pts[2 * i]); Z.push(-R.pts[2 * i + 1]); }
+  const line = polyline(X, Z, R.start || 0);
+  return { width: R.width || 160, real: true, at: line.at, bridges: R.bridges || [], X, Z,
+           sides: new Map((R.stops || []).map(([km, side]) => [km, side])), attribution: R.attribution };
+}
+
 const rng = seed => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
 
 export function start(el, state) {
@@ -84,6 +127,18 @@ export function start(el, state) {
 
   // ---------- Landschaft in Abschnitten ----------
   const chunks = new Map();
+  let path = wiggle(), WIDTH = path.width, routeId = null;
+  // Punkt neben der Flussmitte: off > 0 rechts, along verschiebt laengs des Flusses
+  function place(s, off, at = path.at) {
+    const [x, z, fx, fz] = at(s);
+    if (path.real && Math.abs(off) > 60) {             // Innenseite enger Kurven: nicht ueber den Kurvenmittelpunkt hinaus
+      const h = Math.max(100, Math.abs(off) / 2), p = at(s - h), q = at(s + h);
+      const turn = p[2] * q[3] - p[3] * q[2], ang = Math.abs(Math.atan2(turn, p[2] * q[2] + p[3] * q[3]));
+      if (turn * off > 0) off = Math.sign(off) * Math.min(Math.abs(off), Math.max(60, 0.7 * 2 * h / Math.max(1e-4, ang)));
+    }
+    return [x - fz * off, z + fx * off];
+  }
+  const heading = s => { const p = path.at(s); return Math.atan2(-p[2], -p[3]); };
   const grass = [0x5d8a3c, 0x6f9a45, 0x4f7a34, 0x86a957].map(c => new THREE.Color(c));
   const treeGeo = new THREE.ConeGeometry(4, 13, 6), trunkGeo = new THREE.CylinderGeometry(0.6, 0.8, 3, 5);
   const treeMat = new THREE.MeshLambertMaterial({ color: 0x2f5d2a }), trunkMat = new THREE.MeshLambertMaterial({ color: 0x5b4330 });
@@ -95,9 +150,10 @@ export function start(el, state) {
   function ribbon(s0, s1, offs, hfn, colfn, mat) {
     const rows = Math.ceil((s1 - s0) / 10) + 1, cols = offs.length, pos = [], col = [], idx = [];
     for (let r = 0; r < rows; r++) {
-      const s = s0 + (s1 - s0) * r / (rows - 1), x0 = cx(s);
+      const s = s0 + (s1 - s0) * r / (rows - 1);
       for (let c = 0; c < cols; c++) {
-        pos.push(x0 + offs[c], hfn(s, c), -s);
+        const [px, pz] = place(s, offs[c]);
+        pos.push(px, hfn(s, c), pz);
         if (colfn) { const k = colfn(s, c); col.push(k.r, k.g, k.b); }
       }
     }
@@ -116,48 +172,68 @@ export function start(el, state) {
 
   const hill = (s, side) => 45 * Math.max(0, Math.sin(s / 1300 + side) * 0.6 + Math.sin(s / 410 + side * 2) * 0.4);
 
+  function sign(text, big) {
+    const cv = document.createElement("canvas");
+    cv.width = 512; cv.height = 128;
+    const c = cv.getContext("2d");
+    c.fillStyle = big ? "rgba(0,0,0,.55)" : "rgba(20,40,70,.5)";
+    c.beginPath(); c.roundRect(0, 14, 512, 100, 24); c.fill();
+    c.fillStyle = "#fff"; c.font = (big ? "bold 64px" : "600 50px") + " system-ui,sans-serif";
+    c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText(text, 256, 66, 480);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, fog: false }));
+    sp.scale.set(big ? 48 : 34, big ? 12 : 8.5, 1);
+    return sp;
+  }
+
+  function bridge(group, s, name) {
+    const [bx, bz] = place(s, 0), rot = heading(s);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(WIDTH + 60, 2, 9), stoneMat);
+    deck.position.set(bx, 11, bz);
+    deck.rotation.y = rot;
+    group.add(deck);
+    for (const p of [-1, 0, 1]) {
+      const [px, pz] = place(s, p * WIDTH * 0.32);
+      const pier = new THREE.Mesh(new THREE.BoxGeometry(4, 11, 7), stoneMat);
+      pier.position.set(px, 5, pz);
+      pier.rotation.y = rot;
+      group.add(pier);
+    }
+    if (name) {
+      const sp = sign(name, false);
+      sp.position.set(bx, 19, bz);
+      group.add(sp);
+    }
+  }
+
   function town(group, s, side, name, rand) {
-    const x0 = cx(s), dir = side;
+    const rot = heading(s);
     for (let i = 0; i < 14; i++) {
       const w = 7 + rand() * 6, d = 8 + rand() * 5, h = 6 + rand() * 6;
       const hs = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
       const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.75, 4, 4), roofMat);
-      const px = x0 + dir * (WIDTH / 2 + 18 + rand() * 120), pz = -(s + (rand() - 0.3) * 160);
+      const [px, pz] = place(s + (rand() - 0.3) * 160, side * (WIDTH / 2 + 18 + rand() * 120));
       hs.position.set(px, h / 2, pz);
+      hs.rotation.y = rot;
       roof.position.set(px, h + 2, pz);
-      roof.rotation.y = Math.PI / 4;
+      roof.rotation.y = rot + Math.PI / 4;
       group.add(hs, roof);
     }
-    const tx = x0 + dir * (WIDTH / 2 + 60), tz = -(s + 40);
+    const [tx, tz] = place(s + 40, side * (WIDTH / 2 + 60));
     const tower = new THREE.Mesh(new THREE.BoxGeometry(8, 34, 8), stoneMat);
     tower.position.set(tx, 17, tz);
     const spire = new THREE.Mesh(new THREE.ConeGeometry(6.5, 16, 4), roofMat);
     spire.position.set(tx, 42, tz);
     spire.rotation.y = Math.PI / 4;
     group.add(tower, spire);
-    // Bruecke kurz hinter dem Ort
-    const bs = s + 120, bx = cx(bs);
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(WIDTH + 60, 2, 9), stoneMat);
-    deck.position.set(bx, 11, -bs);
-    group.add(deck);
-    for (const p of [-1, 0, 1]) {
-      const pier = new THREE.Mesh(new THREE.BoxGeometry(4, 11, 7), stoneMat);
-      pier.position.set(bx + p * WIDTH * 0.32, 5, -bs);
-      group.add(pier);
-    }
-    // Ortsschild ueber dem Wasser
-    const cv = document.createElement("canvas");
-    cv.width = 512; cv.height = 128;
-    const c = cv.getContext("2d");
-    c.fillStyle = "rgba(0,0,0,.55)";
-    c.beginPath(); c.roundRect(0, 14, 512, 100, 24); c.fill();
-    c.fillStyle = "#fff"; c.font = "bold 64px system-ui,sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
-    c.fillText(name, 256, 66, 480);
-    const tex = new THREE.CanvasTexture(cv);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, fog: false }));
-    sp.scale.set(48, 12, 1);
-    sp.position.set(bx, 28, -bs);
+    // Ortsschild ueber dem Wasser; erfundene Strecken bekommen dazu eine Bruecke
+    const bs = s + 120;
+    if (!path.real) bridge(group, bs, "");
+    const sp = sign(name, true);
+    const [sx, sz] = place(bs, 0);
+    sp.position.set(sx, 28, sz);
     group.add(sp);
   }
 
@@ -168,7 +244,8 @@ export function start(el, state) {
       const offs = [WIDTH / 2, WIDTH / 2 + 6, WIDTH / 2 + 40, WIDTH / 2 + 160, WIDTH / 2 + 420, WIDTH / 2 + 900].map(o => o * side);
       const hs = [0.2, 1.5, 3, 8, 1, 1];
       const mesh = ribbon(s0, s1, offs, (s, c) => c < 2 ? hs[c] : hs[c] + hill(s, side) * (c - 1) / 3,
-        (s, c) => grass[(c + Math.floor(s / 90)) % grass.length].clone().offsetHSL(0, 0, (Math.sin(s / 37 + c) * 0.03)), groundMat);
+        (s, c) => grass[(c + Math.floor(s / 90)) % grass.length].clone().offsetHSL(0, 0, (Math.sin(s / 37 + c) * 0.03)),
+        groundMat);
       g.add(mesh);
       const n = 26;
       const trees = new THREE.InstancedMesh(treeGeo, treeMat, n), trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, n);
@@ -176,17 +253,20 @@ export function start(el, state) {
       for (let k = 0; k < n; k++) {
         const s = s0 + rand() * CHUNK, d = WIDTH / 2 + 10 + Math.pow(rand(), 1.6) * 300, sc = 0.7 + rand() * 0.8;
         const y = d > WIDTH / 2 + 40 ? 3 + hill(s, side) * Math.min(1, (d - WIDTH / 2 - 40) / 360) : 1.5;
-        m.makeScale(sc, sc, sc).setPosition(cx(s) + side * d, y + 7.5 * sc, -s);
+        const [px, pz] = place(s, side * d);
+        m.makeScale(sc, sc, sc).setPosition(px, y + 7.5 * sc, pz);
         trees.setMatrixAt(k, m);
-        m.makeScale(sc, sc, sc).setPosition(cx(s) + side * d, y + 1.5 * sc, -s);
+        m.makeScale(sc, sc, sc).setPosition(px, y + 1.5 * sc, pz);
         trunks.setMatrixAt(k, m);
       }
       g.add(trees, trunks);
     }
     for (const [km, name] of stops) {
       const s = km * 1000;
-      if (s >= s0 && s < s1) town(g, s, (Math.round(km) % 2) ? 1 : -1, name, rng(Math.round(km * 13) + 5));
+      const side = (path.sides && path.sides.get(km)) || ((Math.round(km) % 2) ? 1 : -1);
+      if (s >= s0 && s < s1) town(g, s, side, name, rng(Math.round(km * 13) + 5));
     }
+    for (const [s, name] of path.bridges || []) if (s >= s0 && s < s1) bridge(g, s, name);
     return g;
   }
 
@@ -195,6 +275,41 @@ export function start(el, state) {
       if (o.geometry && o.geometry !== treeGeo && o.geometry !== trunkGeo) o.geometry.dispose();
       if (o.material && o.material.map) { o.material.map.dispose(); o.material.dispose(); }
     });
+  }
+
+  // ---------- Kleine Karte und Quellenangabe (nur bei echtem Verlauf) ----------
+  if (getComputedStyle(el).position === "static") el.style.position = "relative";
+  const map = document.createElement("canvas"), credit = document.createElement("div");
+  map.style.cssText = "position:absolute;top:8px;right:8px;width:84px;height:84px;margin:0;border-radius:12px;" +
+    "background:rgba(10,22,40,.55);display:none;pointer-events:none";
+  credit.style.cssText = "position:absolute;left:8px;bottom:6px;font:500 10px system-ui,sans-serif;" +
+    "color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.6);display:none;pointer-events:none";
+  el.append(map, credit);
+  let mapAt = 0;
+  function minimap(x, z, fx, fz) {
+    const show = !!path.real;
+    map.style.display = credit.style.display = show ? "block" : "none";
+    if (!show) return;
+    credit.textContent = path.attribution || "© OpenStreetMap";
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), W = 84 * dpr, R = 7000, k = (W / 2 - 8 * dpr) / R;
+    if (map.width !== W) map.width = map.height = W;
+    const c = map.getContext("2d");
+    c.clearRect(0, 0, W, W);
+    c.lineWidth = 3 * dpr; c.lineCap = c.lineJoin = "round"; c.strokeStyle = "#6fb3ff";
+    c.beginPath();
+    let pen = false;
+    for (let i = 0; i < path.X.length; i++) {          // Norden oben, 7 km um das Boot
+      const dx = path.X[i] - x, dz = path.Z[i] - z;
+      if (Math.abs(dx) > R * 1.4 || Math.abs(dz) > R * 1.4) { pen = false; continue; }
+      const px = W / 2 + dx * k, py = W / 2 + dz * k;
+      if (pen) c.lineTo(px, py); else c.moveTo(px, py);
+      pen = true;
+    }
+    c.stroke();
+    c.fillStyle = "#ff5a1f";                           // Boot als Pfeil in Fahrtrichtung
+    c.save(); c.translate(W / 2, W / 2); c.rotate(Math.atan2(fx, -fz));
+    c.beginPath(); c.moveTo(0, -6 * dpr); c.lineTo(4 * dpr, 5 * dpr); c.lineTo(-4 * dpr, 5 * dpr); c.closePath(); c.fill();
+    c.restore();
   }
 
   // ---------- Fahrt ----------
@@ -207,7 +322,7 @@ export function start(el, state) {
     const now = performance.now() / 1000;
     const target = W.period || (S.drive && S.recover ? S.drive + S.recover : clock.period);
     clock.period += (Math.min(6, Math.max(1.2, target)) - clock.period) * Math.min(1, dt * 0.8);
-    clock.phase = (clock.phase + dt / clock.period) % 1;
+    clock.phase = ((clock.phase + dt / clock.period) % 1 + 1) % 1;
     const age = Date.now() / 1000 - (W.ts || 0);
     for (const ago of W.catch_ago || []) {
       const c = now - ago - age;                       // Zeitpunkt des Zuganfangs in unserer Uhr
@@ -245,11 +360,12 @@ export function start(el, state) {
     return (a + (b - a) * k) / 100;
   }
   const pose = { seat: 0, torso: 0, oar: 0, lift: 0 };
+  const cam = { fx: 0, fz: -1 };
 
   function frame(now) {
     if (!running) return;
     requestAnimationFrame(frame);
-    const dt = Math.min(0.1, (now - last) / 1000);
+    const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));   // rAF-Zeit kann knapp vor `last` liegen
     last = now;
     const { S = {}, W = {}, G = null } = state();
     if (!G) return;
@@ -262,16 +378,27 @@ export function start(el, state) {
     const surge = clock.idle > 0.5 ? 1 : inDrive ? 1 + 0.22 * (force(clock.curve, p / D) - 0.45) : 0.94;
     pos += speed * surge * dt + (target - pos) * dt * 0.05;     // sanft am Wert der Box halten
 
-    const key = (G.stops || []).map(x => x[0]).join(",");
+    if (G.route !== routeId) {                         // echten Verlauf laden, falls es einen gibt
+      routeId = G.route;
+      const id = routeId;
+      fetch(`/static/routes/${id}.json`).then(r => r.ok ? r.json() : null).then(R => {
+        if (id !== routeId || !R || !R.pts) return;
+        path = realRoute(R); WIDTH = path.width; stopsKey = "";
+      }).catch(() => {});
+      path = wiggle(); WIDTH = path.width; stopsKey = "";
+    }
+    const key = (G.stops || []).map(x => x[0]).join(",") + (path.real ? "+osm" : "");
     if (key !== stopsKey) { for (const g of chunks.values()) { scene.remove(g); dispose(g); } chunks.clear(); stopsKey = key; }
     const first = Math.floor((pos - BEHIND) / CHUNK), lastC = Math.floor((pos + AHEAD) / CHUNK);
     for (const [i, g] of chunks) if (i < first || i > lastC) { scene.remove(g); dispose(g); chunks.delete(i); }
     for (let i = Math.max(0, first); i <= lastC; i++) if (!chunks.has(i)) { const g = build(i, G.stops || []); chunks.set(i, g); scene.add(g); }
 
-    // Boot auf der Flusslinie, leicht nach der Kurve ausgerichtet
-    const x = cx(pos), ahead = cx(pos + 6);
-    boat.position.set(x, 0.05, -pos);
-    boat.rotation.y = -Math.atan2(ahead - x, 6);
+    // Boot auf der Flusslinie, in Fahrtrichtung; etwas rechts der Mitte wie auf echten Fluessen
+    const [x0, z0, bfx, bfz] = path.at(pos), lane = path.real ? WIDTH * 0.12 : 0;
+    const x = x0 - bfz * lane, z = z0 + bfx * lane;
+    boat.position.set(x, 0.05, z);
+    boat.rotation.y = Math.atan2(-bfx, -bfz);
+    if (now - mapAt > 500) { mapAt = now; minimap(x, z, bfx, bfz); }
 
     // Ruderbewegung aus der Kraftkurve: Der Griffweg folgt der aufsummierten Kraft des letzten Zugs.
     // Zug: erst Beine, dann Oberkoerper; Vorrollen: erst Oberkoerper, dann Beine, gleichmaessig.
@@ -294,10 +421,13 @@ export function start(el, state) {
       o.blade.rotation.x = (1 - pose.lift) * Math.PI / 2.4;
     }
 
-    // Kamera genau hinter dem Boot, in seiner Fahrtrichtung
-    const fx = (ahead - x) / Math.hypot(ahead - x, 6), fz = -6 / Math.hypot(ahead - x, 6);
-    camera.position.set(x - fx * 9.5 + 0.25, 2.5, -pos - fz * 9.5);
-    camera.lookAt(x + fx * 30, 1.6, -pos + fz * 30);
+    // Kamera hinter dem Boot; Blickrichtung ueber ein laengeres Stueck gemittelt, damit sie ruhig bleibt
+    const a = path.at(pos - 15), b = path.at(pos + 35), ab = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    cam.fx += ((b[0] - a[0]) / ab - cam.fx) * Math.min(1, dt * 2);
+    cam.fz += ((b[1] - a[1]) / ab - cam.fz) * Math.min(1, dt * 2);
+    const n = Math.hypot(cam.fx, cam.fz) || 1, fx = cam.fx / n, fz = cam.fz / n;
+    camera.position.set(x - fx * 11 - fz * 0.25, 3.6, z - fz * 11 + fx * 0.25);
+    camera.lookAt(x + fx * 40, 0.8, z + fz * 40);
     const w = el.clientWidth, h = el.clientHeight;
     if (renderer.domElement.width !== Math.round(w * renderer.getPixelRatio()) || camera.aspect !== w / h) {
       renderer.setSize(w, h, false);
