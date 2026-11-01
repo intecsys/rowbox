@@ -161,6 +161,15 @@ Rudergerät stellen. Wischen nach links und rechts wechselt zwischen Training, K
 Taktgeber, Live-Kurve, Reise und Status. Tipp: Seite zum Home-Bildschirm hinzufügen und die
 automatische Sperre beim Rudern ausschalten, damit der Bildschirm an bleibt.
 
+**Neues WLAN ohne Display:** Findet die Box kein bekanntes WLAN (zum Beispiel an einem neuen Ort),
+öffnet sie nach etwa einer Minute (zwei Minuten nach dem Einschalten) ihren eigenen Hotspot. Mit dem
+Handy verbinden, mit Name und Passwort aus `setup.sh` oder über den QR-Code, den `setup.sh` anzeigt.
+Die Einrichtungsseite öffnet sich von selbst (sonst `http://10.42.0.1` aufrufen); mit demselben
+Passwort anmelden, unter **WLAN** das Netz wählen, und die Box verbindet sich. Tipp: die
+**Hotspot-Karte** ausdrucken (Portal → Einstellungen → Hotspot → Karte zum Ausdrucken) und auf die
+Box kleben, dann sind Name, Passwort und QR-Code immer zur Hand. Solange niemand verbunden ist,
+probiert die Box alle zwei Minuten die bekannten Netze und schließt den Hotspot dann von selbst.
+
 ## Benutzung
 
 1. S4 einschalten und mit der Box verbinden.

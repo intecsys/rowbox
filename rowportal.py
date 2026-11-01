@@ -682,7 +682,7 @@ padding:10px 16px;z-index:2;font-size:14px;color:var(--dim)}
 .deck{display:flex;height:100svh;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .deck::-webkit-scrollbar{display:none}
 .slide{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;flex-direction:column;
-align-items:center;justify-content:center;padding:52px 20px 40px}
+align-items:center;justify-content:center;padding:52px 20px calc(60px + env(safe-area-inset-bottom))}
 .sc{width:100%;max-width:440px;text-align:center;font-variant-numeric:tabular-nums}
 .t{color:var(--dim);font-weight:700;font-size:clamp(20px,6vw,28px)}
 .sub{color:var(--dim);font-size:clamp(13px,3.6vw,16px);margin-top:2px}
@@ -756,7 +756,12 @@ justify-content:space-between;text-align:left;border:2px solid transparent;min-h
 .tiles span{color:var(--dim);font-size:clamp(13px,2vh,18px);margin-top:4px}
 .pausebox{flex:1.15;display:flex;flex-direction:column;justify-content:center;border-top:1px solid var(--line)}
 .pausebox .big{font-size:clamp(56px,min(20vw,12vh),120px)}
-.hint{position:fixed;bottom:12px;left:0;right:0;text-align:center;color:var(--dim);font-size:13px;transition:opacity .6s}
+.swipe{position:fixed;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:10px;
+padding:10px 12px calc(10px + env(safe-area-inset-bottom));color:var(--dim);font-size:clamp(13px,1.9vh,16px);
+background:linear-gradient(transparent,#000 35%);z-index:2}
+.swipe button{background:none;border:0;color:var(--fg);padding:6px 12px;cursor:pointer;display:flex}
+.swipe button:disabled{opacity:.2}
+.swipe svg{width:22px;height:22px;margin:0}
 """
 
 SCREEN_JS = r"""
@@ -768,14 +773,18 @@ const deck=$('deck'),slides=[...deck.children],dots=$('dots');
 slides.forEach(()=>dots.appendChild(document.createElement('i')));
 let cur=0;
 function current(){return Math.round(deck.scrollLeft/deck.clientWidth)}
-function mark(){cur=current();[...dots.children].forEach((d,i)=>d.className=i==cur?'on':'');
- try{localStorage.setItem('rowbox-screen',slides[cur].id)}catch(e){}}
+let mark=function(){cur=current();[...dots.children].forEach((d,i)=>d.className=i==cur?'on':'');
+ try{localStorage.setItem('rowbox-screen',slides[cur].id)}catch(e){}};
 deck.addEventListener('scroll',()=>{clearTimeout(mark.t);mark.t=setTimeout(mark,80)});
 document.addEventListener('keydown',e=>{const d=e.key=='ArrowRight'?1:e.key=='ArrowLeft'?-1:0;
  if(d)deck.scrollTo({left:(current()+d)*deck.clientWidth,behavior:'smooth'})});
 try{const id=localStorage.getItem('rowbox-screen');const i=slides.findIndex(x=>x.id==id);
  if(i>0)requestAnimationFrame(()=>{deck.scrollLeft=i*deck.clientWidth;mark()})}catch(e){}
-mark();setTimeout(()=>$('hint').style.opacity=0,4000);
+const go=d=>deck.scrollTo({left:(current()+d)*deck.clientWidth,behavior:'smooth'});
+$('prev').onclick=()=>go(-1);$('next').onclick=()=>go(1);
+const arrows=()=>{$('prev').disabled=cur==0;$('next').disabled=cur==slides.length-1};
+const _mark=mark;mark=function(){_mark();arrows()};
+mark();
 // --- 1 Hz: Trainingswerte, Kraftkurve, Status ---
 let S={},lastN=null;const hist=[];
 function fit(cv){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1,w=Math.round(r.width*d),h=Math.round(r.height*d);
@@ -952,7 +961,9 @@ def screen_page():
 <div id="s-s4"><i></i><b>S4</b><span id="s-s4t"></span></div>
 <div id="s-app"><i></i><b>App</b><span id="s-appt"></span></div>
 <div id="s-bat"><i></i><b>{L("Akku")}</b><span id="s-batt"></span></div></div></div></section>
-</main><div class="hint" id="hint">{L("Zur Seite wischen für weitere Ansichten")}</div>
+</main><nav class="swipe"><button id="prev" aria-label="{L("Zurück")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+<span style="white-space:nowrap">{L("Wischen für mehr Ansichten")}</span>
+<button id="next" aria-label="{L("Weiter")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></nav>
 <script>const T={json.dumps(texts)};{SCREEN_JS}</script></body></html>"""
     return body
 
@@ -986,6 +997,46 @@ def wave_json():
     except OSError:
         pass
     return json.dumps(read_json(WAVE, {}))
+
+
+def wifi_qr_text(ssid, password):
+    esc = lambda t: "".join("\\" + c if c in '\\;,:"' else c for c in t)
+    return f"WIFI:T:WPA;S:{esc(ssid)};P:{esc(password)};;"
+
+
+def qr_svg(text):
+    """QR-Code als SVG (python3-qrcode), ohne Bilddatei."""
+    try:
+        import qrcode
+    except ImportError:
+        return ""
+    q = qrcode.QRCode(border=2)
+    q.add_data(text)
+    q.make(fit=True)
+    m = q.get_matrix()
+    n = len(m)
+    path = "".join(f"M{x},{y}h1v1h-1z" for y, row in enumerate(m) for x, v in enumerate(row) if v)
+    return (f'<svg viewBox="0 0 {n} {n}" shape-rendering="crispEdges" style="width:100%;max-width:260px">'
+            f'<rect width="{n}" height="{n}" fill="#fff"/><path d="{path}" fill="#000"/></svg>')
+
+
+def hotspot_card_page():
+    """Karte zum Ausdrucken: Hotspot-Name, Passwort, QR-Code. Fuer Boxen ohne Display."""
+    conf = read_json(CONF, {})
+    ssid, pw = conf.get("ssid", ""), conf.get("password", "")
+    return f"""<!doctype html><html lang="{get_lang()}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Rowbox – {L("Hotspot")}</title>
+<style>body{{font-family:system-ui,sans-serif;margin:24px;color:#000;background:#fff}}
+.card{{border:2px dashed #999;border-radius:14px;padding:22px;max-width:320px;text-align:center}}
+h1{{font-size:22px;margin:0 0 4px}}p{{margin:6px 0;font-size:14px}}code{{font-size:17px;font-weight:700}}
+.no-print{{margin-top:18px}}@media print{{.no-print{{display:none}}body{{margin:0}}}}</style></head><body>
+<div class="card"><h1>rowbox</h1><p>{L("WLAN einrichten: QR-Code scannen oder mit diesem Netz verbinden")}</p>
+{qr_svg(wifi_qr_text(ssid, pw))}
+<p>{L("Netz")}: <code>{e(ssid)}</code></p><p>{L("Passwort")}: <code>{e(pw)}</code></p>
+<p>{L("Die Einrichtungsseite öffnet sich von selbst, sonst {url} aufrufen.", url="<code>http://10.42.0.1</code>")}</p></div>
+<p class="no-print"><button onclick="print()">{L("Drucken")}</button> <a href="/einstellungen">{L("Zurück")}</a></p>
+<p class="no-print" style="max-width:420px;color:#555;font-size:13px">{L("Der Hotspot öffnet sich, wenn die Box kein bekanntes WLAN findet. Ändert sich Name oder Passwort, die Karte neu drucken.")}</p>
+</body></html>"""
 
 
 def wlan_page(wifi, msg=""):
@@ -1318,7 +1369,8 @@ def settings_page(conf, msg=""):
 <option value="1" {sel("hotspot", True)}>{L("ja")}</option><option value="0" {sel("hotspot", False)}>{L("nein")}</option></select>
 <label class="dim">{L("Name")}</label><input name="ssid" value="{e(conf["ssid"])}" maxlength="32">
 <label class="dim">{L("Passwort (auch für diese Seite, mind. 8 Zeichen)")}</label>
-<input name="password" value="{e(conf["password"])}" minlength="8" maxlength="63"></div>
+<input name="password" value="{e(conf["password"])}" minlength="8" maxlength="63">
+<p class="dim"><a href="/hotspot-karte">{L("Karte zum Ausdrucken")}</a>: {L("QR-Code für den Hotspot, zum Aufkleben auf die Box. Praktisch ohne Display.")}</p></div>
 <div class="card"><h2>{L("MQTT (optional)")}</h2>
 <p class="dim">{L("Sendet die Werte an einen MQTT-Server, z. B. für Home Assistant. Leer lassen = aus.")}</p>
 <div class="row"><div><label class="dim">{L("Server")}</label><input name="mqtt_host" value="{e(conf["mqtt_host"])}" placeholder="{L("z. B. homeassistant.local")}"></div>
@@ -1531,6 +1583,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send(screen_page())
         elif u.path == "/anzeige.json":
             self.send(screen_json(), "application/json")
+        elif u.path == "/hotspot-karte":
+            self.send(hotspot_card_page())
         elif u.path == "/wave.json":
             self.send(wave_json(), "application/json")
         elif u.path == "/wlan":

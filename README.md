@@ -157,6 +157,15 @@ the end (look it up later with `sudo grep password /etc/rowbox.json`). Then conn
 rower. Swipe left and right between training, force curve, pacer, live wave, journey and status.
 Tip: add the page to the home screen and switch off auto-lock while rowing, so the screen stays on.
 
+**New Wi-Fi without a display:** if the box finds no known Wi-Fi (e.g. at a new place), it opens
+its own hotspot after about a minute (two minutes after power-on). Join it with your phone using
+the name and password from `setup.sh`, or scan the QR code that `setup.sh` prints. The setup page
+opens by itself (otherwise go to `http://10.42.0.1`); log in with the same password, pick your
+network under **Wi-Fi** and the box connects. Tip: print the **hotspot card** (portal → Settings →
+Hotspot → Printable card) and stick it on the box, then you always have name, password and QR code
+at hand. The hotspot closes by itself and the box retries known networks every two minutes while
+nobody is connected.
+
 ## Usage
 
 1. Switch on the S4 and connect it to the box.

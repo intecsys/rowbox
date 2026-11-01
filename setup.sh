@@ -188,6 +188,19 @@ else
     T "Hotspot, falls kein WLAN da ist: $HSSID" "Hotspot if no known Wi-Fi is around: $HSSID"
     T "Bitte notieren. Später nachsehen: sudo grep password /etc/rowbox.json" \
       "Please write it down. Look it up later: sudo grep password /etc/rowbox.json"
+    T "QR-Code für den Hotspot (an einem neuen Ort ohne bekanntes WLAN damit verbinden):" \
+      "QR code for the hotspot (join it at a new place without a known Wi-Fi):"
+    python3 - "$HOMEDIR" <<'PY'
+import json, sys
+sys.path.insert(0, sys.argv[1])
+import qrcode, rowportal
+c = json.load(open("/etc/rowbox.json"))
+q = qrcode.QRCode(border=2)
+q.add_data(rowportal.wifi_qr_text(c["ssid"], c["password"]))
+q.print_ascii(invert=True)
+PY
+    T "Zum Ausdrucken und Aufkleben: Webportal → Einstellungen → Hotspot → Karte zum Ausdrucken" \
+      "To print and stick on the box: web portal → Settings → Hotspot → Printable card"
 fi
 
 step "$(T Fertig Done)"
