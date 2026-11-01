@@ -22,6 +22,8 @@ import rowgame
 
 CONF = "/etc/rowbox.json"
 STATE = "/run/rowbridge/state.json"
+WAVE = "/run/rowbridge/wave.json"          # Radtempo 10 Hz, nur solange WAVE_ON frisch ist
+WAVE_ON = "/run/rowbridge/wave_on"
 PORTAL_STATE = "/run/rowbridge/portal.json"
 LOGBOOK = "/var/lib/rowbridge/sessions.jsonl"
 TRACKS = "/var/lib/rowbridge/tracks"
@@ -528,7 +530,7 @@ def pw_hint(lang=None):
 
 
 def page(title, active, body, msg=""):
-    tabs = [("/", L("Status")), ("/live", L("Live")), ("/logbuch", L("Logbuch"))]
+    tabs = [("/", L("Status")), ("/live", L("Live")), ("/anzeige", L("Anzeige")), ("/logbuch", L("Logbuch"))]
     if read_json(CONF, {}).get("game", True):
         tabs.append(("/reise", L("Reise")))
     tabs += [("/wlan", L("WLAN")), ("/protokoll", L("Protokoll")), ("/einstellungen", L("Einstellungen"))]
@@ -641,7 +643,10 @@ def live_page():
              "nobox": L("keine Verbindung zur Box"),
              "pauseleft": L("Pause – automatisches Ende in {t}", t="{t}"),
              "dec": "," if get_lang() == "de" else "."}
-    body = (f'<p id="state" class="dim">…</p><div class="grid">'
+    body = (f'<a class="card" href="/anzeige" style="display:block;text-decoration:none;color:inherit">'
+            f'<h2>{L("Handy als Display")}</h2><p class="dim" style="margin:0">'
+            f'{L("Alle Ansichten wie auf dem Display, zum Wischen. Ideal für die Ultralight-Version ohne Display.")}</p></a>'
+            f'<p id="state" class="dim">…</p><div class="grid">'
             + tile("dist", L("Distanz"), "m", True) + tile("time", L("Zeit"), "")
             + tile("pace", L("Pace"), "/500") + tile("spm", L("Schlagzahl"), "/min")
             + tile("watts", L("Leistung"), "W") + tile("cal", L("Energie"), "kcal")
@@ -661,6 +666,223 @@ def live_json():
     s["fresh"] = time.time() - s.get("ts", 0) < 5
     s.pop("last", None)
     return json.dumps(s)
+
+
+# ---------- Handy als Display ----------
+
+SCREEN_CSS = """
+:root{--bg:#000;--fg:#f2f2ee;--dim:#8a8f98;--sig:#ff5a1f;--ok:#3ccf6e;--card:#20242c;--line:#3c424c}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
+font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+.top{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+padding:10px 16px;z-index:2;font-size:14px;color:var(--dim)}
+.top a{color:var(--dim);text-decoration:none}
+.dots{display:flex;gap:7px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--fg)}
+.deck{display:flex;height:100svh;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.deck::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;flex-direction:column;
+align-items:center;justify-content:center;padding:52px 20px 40px}
+.sc{width:100%;max-width:440px;text-align:center;font-variant-numeric:tabular-nums}
+.t{color:var(--dim);font-weight:700;font-size:clamp(20px,6vw,28px)}
+.sub{color:var(--dim);font-size:clamp(13px,3.6vw,16px);margin-top:2px}
+.huge{font-weight:800;font-size:clamp(72px,26vw,140px);line-height:1;margin-top:18px}
+.big{font-weight:800;font-size:clamp(36px,12vw,64px);line-height:1.05}
+.row3{display:flex;justify-content:space-around;margin-top:26px}
+.row3 b{display:block;font-size:clamp(26px,8vw,44px)}.row3 span,.lab{color:var(--dim);font-size:clamp(13px,3.6vw,16px)}
+.warn{color:var(--sig)}
+svg,canvas{width:100%;display:block;margin-top:18px}
+.navc{background:var(--card);border-radius:16px;padding:16px 18px;text-align:left;margin-top:14px}
+.navc .big{font-size:clamp(30px,10vw,52px)}
+.r2{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:clamp(22px,7vw,34px)}
+.goal{text-align:left;margin-top:16px;padding:0 4px}
+.goal b{font-size:clamp(22px,7vw,34px)}
+.st{list-style:none;padding:0;margin:26px 0 0;text-align:left}
+.st li{display:flex;align-items:center;gap:14px;padding:11px 0;font-size:clamp(20px,6.5vw,30px);font-weight:700}
+.st li span{margin-left:auto;color:var(--dim);font-weight:400;font-size:clamp(14px,4.4vw,20px)}
+.st i{width:16px;height:16px;border-radius:50%;background:var(--line);flex:none}
+.st i.ok{background:var(--ok)}.st i.bad{background:#e5484d}.st i.wait{background:#3d5afe}
+.hint{position:fixed;bottom:12px;left:0;right:0;text-align:center;color:var(--dim);font-size:13px;transition:opacity .6s}
+"""
+
+SCREEN_JS = r"""
+const $=id=>document.getElementById(id);
+const mmss=s=>{s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=String(s%60).padStart(2,'0');
+ return h?h+':'+String(m).padStart(2,'0')+':'+x:m+':'+x};
+const num=(v,d)=>v==null?'–':Number(v).toFixed(d).replace('.',T.dec);
+const deck=$('deck'),slides=[...deck.children],dots=$('dots');
+slides.forEach(()=>dots.appendChild(document.createElement('i')));
+let cur=0;
+function current(){return Math.round(deck.scrollLeft/deck.clientWidth)}
+function mark(){cur=current();[...dots.children].forEach((d,i)=>d.className=i==cur?'on':'');
+ try{localStorage.setItem('rowbox-screen',slides[cur].id)}catch(e){}}
+deck.addEventListener('scroll',()=>{clearTimeout(mark.t);mark.t=setTimeout(mark,80)});
+document.addEventListener('keydown',e=>{const d=e.key=='ArrowRight'?1:e.key=='ArrowLeft'?-1:0;
+ if(d)deck.scrollTo({left:(current()+d)*deck.clientWidth,behavior:'smooth'})});
+try{const id=localStorage.getItem('rowbox-screen');const i=slides.findIndex(x=>x.id==id);
+ if(i>0)requestAnimationFrame(()=>{deck.scrollLeft=i*deck.clientWidth;mark()})}catch(e){}
+mark();setTimeout(()=>$('hint').style.opacity=0,4000);
+// --- 1 Hz: Trainingswerte, Kraftkurve, Status ---
+let S={};
+async function live(){
+ try{const r=await fetch('/live.json',{cache:'no-store'});
+  if(r.status==401){location.href='/login?next=/anzeige';return}
+  S=await r.json()}catch(e){S={}}
+ const pause=!S.active&&S.pause_left!=null;
+ $('tr-t').textContent=S.active||!S.session?T.training:T.pause;
+ $('tr-dist').textContent=(S.dist||0).toLocaleString(T.locale);
+ $('tr-time').textContent=mmss(S.elapsed);$('tr-spm').textContent=S.spm||0;$('tr-w').textContent=S.watts||0;
+ $('tr-pace').textContent=S.pace?mmss(S.pace)+' /500 m':'';
+ $('tr-pause').style.display=pause?'':'none';$('tr-row').style.display=pause?'none':'';
+ if(pause)$('tr-left').textContent=mmss(S.pause_left);
+ if(S.curve){$('fc-path').setAttribute('points',S.curve.map((v,i)=>(i*300/(S.curve.length-1)).toFixed(1)+','+(112-v*1.05).toFixed(1)).join(' '));
+  $('fc-none').style.display='none'}
+ $('fc-d').textContent=num(S.drive,2);$('fc-r').textContent=num(S.recover,2);
+ $('fc-q').textContent=S.drive&&S.recover?'1 : '+num(S.recover/S.drive,1):'';
+ const st=(id,cls,txt)=>{$(id).className=cls;$(id+'t').textContent=txt};
+ const fresh=!!S.fresh;
+ st('s-br',fresh?'ok':'bad',fresh?T.runs:T.off);
+ st('s-s4',S.s4?'ok':'bad',S.s4?T.conn+(S.s4_fw?' · '+T.fw+' '+S.s4_fw.split(' ').pop():''):T.cable);
+ st('s-app',S.app?'ok':'wait',S.app?T.conn:T.waits);
+}
+// --- alle 10 s: Reise und Akku ---
+async function slow(){
+ try{const r=await fetch('/anzeige.json',{cache:'no-store'});if(r.status!=200)return;const j=await r.json();
+  $('s-bat').className=j.battery==null?'':j.battery>15?'ok':'bad';
+  $('s-batt').textContent=j.battery==null?'–':j.battery+' %';
+  const g=j.journey;if(!g){$('journey').remove();return}
+  $('jr-river').textContent=g.river;$('jr-next').textContent=g.done?g.goal:g.next;
+  $('jr-nkm').textContent=g.done?T.done:g.next_left;$('jr-neta').textContent=g.done?'':g.eta_next;
+  $('jr-goal').textContent=g.goal;$('jr-gkm').textContent=g.left+' km';$('jr-geta').textContent=g.eta_goal;
+  const w=300,x=k=>10+(w-20)*k/g.total,y=20;
+  $('jr-line').innerHTML='<line x1="10" y1="'+y+'" x2="'+(w-10)+'" y2="'+y+'" stroke="#3c424c" stroke-width="5" stroke-linecap="round"/>'+
+   '<line x1="10" y1="'+y+'" x2="'+x(g.km)+'" y2="'+y+'" stroke="#ff5a1f" stroke-width="5" stroke-linecap="round"/>'+
+   g.stops.map(s=>'<circle cx="'+x(s[0])+'" cy="'+y+'" r="5" fill="'+(s[0]<=g.km?'#ff5a1f':'#3c424c')+'"/>').join('')+
+   '<polygon points="'+(x(g.km)-8)+',2 '+(x(g.km)+8)+',2 '+x(g.km)+',12" fill="#f2f2ee"/>';
+ }catch(e){}
+}
+// --- 10 Hz nur fuer Taktgeber und Live-Kurve ---
+let W={};
+const P={phase:0,period:null,t:performance.now()/1000,last:0,started:false,warm:0,marks:[]};
+function pacer(){
+ const now=performance.now()/1000,dt=now-P.t;P.t=now;
+ const target=T.spm?60/T.spm:(W.period||60/22);
+ P.period=P.period==null?target:P.period+(target-P.period)*Math.min(1,dt*0.5);
+ P.phase=(P.phase+dt/P.period)%1;
+ const age=Date.now()/1000-(W.ts||0);
+ for(const ago of [...(W.catch_ago||[])].sort((a,b)=>b-a)){
+  const c=now-ago-age;if(c<=P.last+Math.max(1.2,0.6*P.period))continue;
+  const anchor=((now-c)/P.period)%1;
+  if(!P.started||c-P.last>10||P.warm<2){if(c-P.last>10)P.warm=0;P.phase=anchor;P.started=true;P.warm++}
+  else{const err=((P.phase-anchor+0.5)%1+1)%1-0.5;P.marks.push(Math.abs(err)<0.12);if(P.marks.length>8)P.marks.shift();
+   if(!T.spm)P.phase=Math.abs(err)>0.3?anchor:((P.phase-0.3*err)%1+1)%1}
+  P.last=c}
+ const cv=$('pc'),x=cv.getContext('2d'),w=cv.width,h=cv.height;x.clearRect(0,0,w,h);
+ const y=h*0.38,x0=40,x1=w-40;x.strokeStyle='#3c424c';x.lineWidth=6;x.lineCap='round';
+ x.beginPath();x.moveTo(x0,y);x.lineTo(x1,y);x.stroke();
+ const D=1/3,p=P.phase,seat=p<D?0.5-0.5*Math.cos(p/D*Math.PI):1-(0.5-0.5*Math.cos((p-D)/(1-D)*Math.PI));
+ x.fillStyle=p<D?'#3ccf6e':'#3d5afe';x.beginPath();x.arc(x0+seat*(x1-x0),y,20,0,7);x.fill();
+ P.marks.forEach((ok,i)=>{x.fillStyle=ok?'#3ccf6e':'#ff5a1f';x.beginPath();
+  x.arc(w/2+(i-(P.marks.length-1)/2)*30,h*0.78,8,0,7);x.fill()});
+ const spm=P.period?Math.round(60/P.period):0;
+ $('pc-txt').textContent=(T.spm?T.fixed:T.own).replace('{spm}',spm);
+ $('pc-start').style.display=P.started?'none':'';
+}
+function wave(){
+ const cv=$('wv'),x=cv.getContext('2d'),w=cv.width,h=cv.height;x.clearRect(0,0,w,h);
+ const raw=W.w||[],sm=raw.map((_,i)=>{const a=raw.slice(Math.max(0,i-3),i+1);return a.reduce((p,q)=>p+q,0)/a.length});
+ const sc=Math.max(600,Math.max(0,...sm)*1.1),age=Date.now()/1000-(W.ts||0),step=w/240;
+ x.strokeStyle='#2d4632';x.lineWidth=2;
+ for(const ago of W.catch_ago||[]){const px=w-(ago+age)/0.025*step;if(px>=0){x.beginPath();x.moveTo(px,8);x.lineTo(px,h-6);x.stroke()}}
+ x.strokeStyle='#32373e';x.beginPath();x.moveTo(0,h-6);x.lineTo(w,h-6);x.stroke();
+ if(sm.length>1){x.strokeStyle='#e0662b';x.lineWidth=4;x.lineJoin='round';x.beginPath();
+  sm.forEach((v,i)=>{const px=w-(sm.length-i)*step,py=h-6-v/sc*(h-16);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke()}
+}
+async function fast(){
+ const id=slides[cur].id;
+ if(id=='pacer'||id=='wave'){try{W=await (await fetch('/wave.json',{cache:'no-store'})).json()}catch(e){}}
+ if(id=='pacer')pacer();if(id=='wave')wave();
+}
+live();slow();setInterval(live,1000);setInterval(slow,10000);setInterval(fast,100);
+"""
+
+
+def screen_page():
+    conf = read_json(CONF, {})
+    lang = get_lang()
+    game = conf.get("game", True)
+    texts = {"locale": "de-DE" if lang == "de" else "en-GB", "dec": "," if lang == "de" else ".",
+             "training": L("Training"), "pause": L("Pause"), "runs": L("läuft"), "off": L("aus"),
+             "conn": L("verbunden"), "cable": L("Kabel?"), "waits": L("wartet"), "fw": L("Firmware"),
+             "done": L("Ziel erreicht"), "spm": int(conf.get("pacer_spm") or 0),
+             "own": L("Takt {spm}/min · dein Rhythmus", spm="{spm}"), "fixed": L("Takt {spm}/min · fest", spm="{spm}")}
+    journey = f"""<section class="slide" id="journey"><div class="sc"><div class="sub" id="jr-river"></div>
+<div class="navc"><div class="lab">{L("Nächste Etappe")}</div><div class="big" id="jr-next">…</div>
+<div class="r2"><span><span id="jr-nkm"></span> km</span><span class="warn" id="jr-neta"></span></div></div>
+<svg viewBox="0 0 300 30" id="jr-line"></svg>
+<div class="goal"><div class="lab">{L("Ziel")}</div><div class="r2"><b id="jr-goal"></b><span id="jr-gkm"></span></div>
+<div class="lab" id="jr-geta"></div></div></div></section>""" if game else ""
+    body = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>Rowbox – {L("Anzeige")}</title><style>{SCREEN_CSS}</style></head><body>
+<div class="top"><a href="/live">‹ rowbox</a><div class="dots" id="dots"></div></div>
+<main class="deck" id="deck">
+<section class="slide" id="training"><div class="sc"><div class="t" id="tr-t">{L("Training")}</div>
+<div class="huge" id="tr-dist">0</div><div class="sub">{L("Meter")}</div>
+<div class="row3" id="tr-row"><div><b id="tr-time">0:00</b><span>{L("Zeit")}</span></div>
+<div><b id="tr-spm">0</b><span>/min</span></div><div><b id="tr-w">0</b><span>{L("Watt")}</span></div></div>
+<div id="tr-pause" style="display:none;margin-top:24px"><div class="lab">{L("Automatisches Ende in")}</div>
+<div class="big warn" id="tr-left"></div></div><div class="sub" id="tr-pace" style="margin-top:18px"></div></div></section>
+<section class="slide" id="force"><div class="sc"><div class="t">{L("Kraftkurve")}</div>
+<svg viewBox="0 -4 300 120"><line x1="0" y1="112" x2="300" y2="112" stroke="#3c424c" stroke-width="2"/>
+<polyline id="fc-path" fill="none" stroke="#ff5a1f" stroke-width="4" stroke-linejoin="round" points=""/></svg>
+<div class="sub" id="fc-none">{L("Noch keine Kraftkurve. Sie erscheint nach dem ersten Zug.")}</div>
+<div class="row3"><div><b id="fc-d">–</b><span>{L("Zug (s)")}</span></div><div><b id="fc-r">–</b><span>{L("Rollphase (s)")}</span></div></div>
+<div class="sub" id="fc-q"></div></div></section>
+<section class="slide" id="pacer"><div class="sc"><div class="t">{L("Taktgeber")}</div>
+<canvas id="pc" width="600" height="360"></canvas><div class="sub" id="pc-start">{L("Startet mit dem ersten Zug")}</div>
+<div class="sub" id="pc-txt"></div></div></section>
+<section class="slide" id="wave"><div class="sc"><div class="t">{L("Live-Kurve")}</div>
+<canvas id="wv" width="600" height="420"></canvas></div></section>
+{journey}
+<section class="slide" id="status"><div class="sc"><div class="t">Rowbox</div><ul class="st">
+<li><i id="s-br"></i>{L("Brücke")}<span id="s-brt"></span></li><li><i id="s-s4"></i>S4<span id="s-s4t"></span></li>
+<li><i id="s-app"></i>App<span id="s-appt"></span></li><li><i id="s-bat"></i>{L("Akku")}<span id="s-batt"></span></li></ul></div></section>
+</main><div class="hint" id="hint">{L("Zur Seite wischen für weitere Ansichten")}</div>
+<script>const T={json.dumps(texts)};{SCREEN_JS}</script></body></html>"""
+    return body
+
+
+def screen_json():
+    """Langsame Werte fuer die Handy-Anzeige: Reise und Akku."""
+    conf = read_json(CONF, {})
+    out = {"battery": battery(), "journey": None}
+    if conf.get("game", True):
+        lang = get_lang()
+        live = read_json(STATE, {})
+        fresh = time.time() - live.get("ts", 0) < 5
+        speed = 1800 / live["pace"] if fresh and live.get("active") and live.get("pace") else None
+        st = rowgame.status(sessions(), rowgame.load_json(rowgame.GAME, {}), lang,
+                            extra_km=(live.get("session_m") or 0) / 1000 if fresh else 0, speed_kmh=speed)
+        eta = lambda v: "–" if v in (None, "–") else (L("an {t}", t=v) if ":" in v else L("ca. {t}", t=v))
+        dec = lambda x: (f"{x:,.1f}" if x < 10 else f"{x:,.0f}").translate(
+            str.maketrans(",.", ".,") if lang == "de" else {})
+        out["journey"] = {"river": st["river"], "goal": st["goal"], "next": st["next"], "done": st["done"],
+                          "next_left": dec(st["next_left"]), "left": dec(st["left"]),
+                          "eta_next": eta(st["eta_next"]), "eta_goal": eta(st["eta_goal"]),
+                          "km": st["km"], "total": st["total"], "stops": [[k, n] for k, n in st["stops"]]}
+    return json.dumps(out)
+
+
+def wave_json():
+    """Radtempo fuer Taktgeber und Live-Kurve; haelt die Bruecke beim Schreiben (wie das Display)."""
+    try:
+        with open(WAVE_ON, "w"):
+            pass
+    except OSError:
+        pass
+    return json.dumps(read_json(WAVE, {}))
 
 
 def wlan_page(wifi, msg=""):
@@ -1142,7 +1364,7 @@ class Handler(BaseHTTPRequestHandler):
         """Nicht angemeldet: auf die Anmeldeseite umlenken."""
         if self.logged_in():
             return True
-        if self.path.startswith("/live.json"):
+        if urlparse(self.path).path.endswith(".json"):
             self.send("{}", "application/json", code=401)
         elif self.command == "GET":
             self.redirect("/login?next=" + self.path.replace("&", "%26"))
@@ -1202,6 +1424,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send(live_page())
         elif u.path == "/live.json":
             self.send(live_json(), "application/json")
+        elif u.path in ("/anzeige", "/display"):
+            self.send(screen_page())
+        elif u.path == "/anzeige.json":
+            self.send(screen_json(), "application/json")
+        elif u.path == "/wave.json":
+            self.send(wave_json(), "application/json")
         elif u.path == "/wlan":
             self.send(wlan_page(wifi))
         elif u.path == "/logbuch":

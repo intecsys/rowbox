@@ -40,6 +40,11 @@ schlanker ohne Akku (**Lite**) oder ohne Display und Akku (**Ultralight**).
   Mit Passwort.
 - **Live-Ansicht** im Browser: große Zahlen für Handy oder Tablet am Ruderer, dazu die
   Kraftkurve jedes Zugs sowie Zug- und Rollphase.
+- **Handy als Display:** `http://<hostname>.local/anzeige` zeigt die Ansichten der Box im Vollbild
+  auf dem Handy: Training, Kraftkurve, Taktgeber, Live-Kurve, Reise und Status, gewechselt durch
+  Wischen nach links und rechts. Bei der Ultralight-Variante ist das dein Display.
+
+  <p align="center"><img src="docs/phone_display.png" width="760" alt="Handy als Display: Training, Kraftkurve, Taktgeber und Reise"></p>
 
   <p align="center"><img src="docs/portal.png" width="760" alt="Webportal auf dem Handy: Live-Ansicht, Reise und Auswertung einer Einheit"></p>
   <p align="center"><sub>Webportal auf dem Handy: Live-Ansicht, Reise und die Auswertung einer Einheit.</sub></p>
@@ -89,7 +94,8 @@ schlanker ohne Akku (**Lite**) oder ohne Display und Akku (**Ultralight**).
 | PiSugar Whisplay (Display) | ✓ | ✓ | – |
 | PiSugar 3 (Akku) | ✓ | – (USB-Powerbank oder Netzteil) | – (USB-Powerbank oder Netzteil) |
 | Bluetooth FTMS, Kraftkurve, Logbuch, FIT/TCX, Reisen, Webportal, MQTT | ✓ | ✓ | ✓ |
-| Display-Ansichten, Taktgeber, Live-Kurve, Töne, Einrichtungsassistent | ✓ | ✓ | – |
+| Handy als Display (Ansichten zum Wischen, mit Taktgeber und Live-Kurve) | ✓ | ✓ | ✓ |
+| Display an der Box, Töne, Einrichtungsassistent | ✓ | ✓ | – |
 | Akkuanzeige, Ausschalttaste, Uhrzeit ohne WLAN | ✓ | – | – |
 | Teilekosten (ca.) | 100 € | 70 € | 35 € |
 | Installation | `setup.sh` | `setup.sh --no-pisugar` | `setup.sh --no-display --no-pisugar` |
@@ -149,6 +155,11 @@ sudo bash rowbox/setup.sh --no-display --no-pisugar   # Ultralight: kein Display
 Ultralight hat keinen Einrichtungsassistenten: `setup.sh` zeigt am Ende das Passwort fürs Portal
 und den Namen des Hotspots (später nachsehen mit `sudo grep password /etc/rowbox.json`). Danach in
 der App mit **"WaterRower S4"** verbinden und das Portal unter `http://<hostname>.local` öffnen.
+
+**Dein Handy ist das Display:** `http://<hostname>.local/anzeige` öffnen und das Handy ans
+Rudergerät stellen. Wischen nach links und rechts wechselt zwischen Training, Kraftkurve,
+Taktgeber, Live-Kurve, Reise und Status. Tipp: Seite zum Home-Bildschirm hinzufügen und die
+automatische Sperre beim Rudern ausschalten, damit der Bildschirm an bleibt.
 
 ## Benutzung
 

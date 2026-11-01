@@ -40,6 +40,11 @@ slimmer versions without battery (**Lite**) or without display and battery (**Ul
   Password protected.
 - **Live view** in the browser: big numbers for a phone or tablet at the rower, plus the force
   curve of every stroke, drive and recovery time.
+- **Phone as display:** `http://<hostname>.local/display` shows the box's screens full-screen on
+  your phone: training, force curve, pacer, live wave, journey and status, switched by swiping left
+  and right. With the Ultralight version this is your display.
+
+  <p align="center"><img src="docs/phone_display_en.png" width="760" alt="Phone as display: training, force curve, pacer and journey screens"></p>
 
   <p align="center"><img src="docs/portal_en.png" width="760" alt="Web portal on a phone: live view, journey and session analysis"></p>
   <p align="center"><sub>Web portal on a phone: live view, journey and the analysis of one session.</sub></p>
@@ -87,7 +92,8 @@ slimmer versions without battery (**Lite**) or without display and battery (**Ul
 | PiSugar Whisplay (display) | ✓ | ✓ | – |
 | PiSugar 3 (battery) | ✓ | – (USB power bank or power supply) | – (USB power bank or power supply) |
 | Bluetooth FTMS, force curve, logbook, FIT/TCX, journeys, web portal, MQTT | ✓ | ✓ | ✓ |
-| Display screens, pacer, live wave, sounds, setup assistant | ✓ | ✓ | – |
+| Phone as display (swipeable screens incl. pacer and live wave) | ✓ | ✓ | ✓ |
+| Display on the box, sounds, setup assistant | ✓ | ✓ | – |
 | Battery level, power button, clock without Wi-Fi | ✓ | – | – |
 | Parts cost (approx.) | 100 € | 70 € | 35 € |
 | Install | `setup.sh` | `setup.sh --no-pisugar` | `setup.sh --no-display --no-pisugar` |
@@ -146,6 +152,10 @@ sudo bash rowbox/setup.sh --no-display --no-pisugar   # Ultralight: no display, 
 Ultralight has no setup assistant: `setup.sh` prints the portal password and the hotspot name at
 the end (look it up later with `sudo grep password /etc/rowbox.json`). Then connect your app to
 **"WaterRower S4"** and open the portal at `http://<hostname>.local`.
+
+**Your phone is the display:** open `http://<hostname>.local/display` and put the phone on the
+rower. Swipe left and right between training, force curve, pacer, live wave, journey and status.
+Tip: add the page to the home screen and switch off auto-lock while rowing, so the screen stays on.
 
 ## Usage
 
