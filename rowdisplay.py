@@ -450,8 +450,8 @@ def draw_scull(d, x, y):
     sig = (255, 90, 31)
     d.polygon([(x - 15, y), (x - 7, y - 3), (x + 7, y - 3), (x + 15, y), (x + 7, y + 3), (x - 7, y + 3)], fill=C_FG)
     for sy in (-1, 1):
-        d.line((x + 1, y + sy * 2, x - 3, y + sy * 8), fill=C_FG, width=2)
-        d.ellipse((x - 6, y + sy * 8 - 2, x - 1, y + sy * 8 + 2), fill=sig)
+        d.line((x + 1, y + sy * 2, x - 3, y + sy * 6), fill=C_FG, width=2)
+        d.ellipse((x - 6, y + sy * 6 - 2, x - 1, y + sy * 6 + 2), fill=sig)
     d.ellipse((x - 3, y - 2, x + 1, y + 2), fill=sig)
 
 
@@ -481,7 +481,7 @@ def draw_journey(batt, plug, s=None):
         d.text((22, 108), dist, font=rf, fill=C_FG, anchor="lm")
         d.text((218, 108), when, font=rf, fill=(255, 90, 31), anchor="rm")
     # Strecke als Linie mit Orten und Boot
-    x0, x1, y = 20, 220, 152
+    x0, x1, y = 20, 220, 158
     d.line((x0, y, x1, y), fill=(60, 66, 76), width=4)
     frac = st["km"] / st["total"]
     d.line((x0, y, x0 + (x1 - x0) * frac, y), fill=(255, 90, 31), width=4)
@@ -490,7 +490,7 @@ def draw_journey(batt, plug, s=None):
         done = k <= st["km"]
         d.ellipse((x - 4, y - 4, x + 4, y + 4), fill=(255, 90, 31) if done else (60, 66, 76))
     bx = x0 + (x1 - x0) * frac
-    draw_scull(d, bx, y - 13)                                              # Boot ueber der Linie
+    draw_scull(d, bx, y - 15)                                              # Boot ueber der Linie
     # Ziel
     if st["done"]:
         d.text((W // 2, 196), L("{km} km gerudert", km=fmt_num(st["total"])), font=F_SMALL, fill=C_FG, anchor="mm")
