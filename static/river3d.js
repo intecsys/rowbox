@@ -88,30 +88,50 @@ export function start(el, state) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   el.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 2400);
+
+  // ---------- Himmel nach Uhrzeit: Farbverlauf, Sonne, Dunst; spiegelt sich im Wasser ----------
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 3200);
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-  sun.position.set(-300, 400, 200);
   const hemi = new THREE.HemisphereLight(0xcfe3ff, 0x3a5a2a, 1.1);
   scene.add(sun, hemi);
-
-  // ---------- Himmel nach Uhrzeit ----------
+  const skyU = { top: { value: new THREE.Color() }, horizon: { value: new THREE.Color() },
+                 sunDir: { value: new THREE.Vector3() }, sunCol: { value: new THREE.Color() } };
+  const skyMat = new THREE.ShaderMaterial({
+    uniforms: skyU, side: THREE.BackSide, depthWrite: false, fog: false,
+    vertexShader: "varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: "uniform vec3 top, horizon, sunDir, sunCol; varying vec3 vDir;" +
+      "void main(){ float h = clamp(vDir.y, 0.0, 1.0); vec3 c = mix(horizon, top, pow(h, 0.55));" +
+      " float d = max(dot(normalize(vDir), sunDir), 0.0); c += sunCol * (pow(d, 900.0) * 1.2 + pow(d, 12.0) * 0.25);" +
+      " gl_FragColor = vec4(c, 1.0); }",
+  });
+  const skyDome = new THREE.Mesh(new THREE.SphereGeometry(2800, 24, 12), skyMat);
+  skyDome.renderOrder = -1;
+  scene.add(skyDome);
+  const pmrem = new THREE.PMREMGenerator(renderer), envScene = new THREE.Scene();
+  envScene.add(new THREE.Mesh(new THREE.SphereGeometry(10, 24, 12), skyMat));
+  let envTarget = null;
+  const mixC = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), Math.min(1, Math.max(0, t)));
   function sky() {
     const h = new Date().getHours() + new Date().getMinutes() / 60;
-    const day = new THREE.Color(0x9cc8f0), dusk = new THREE.Color(0xf2a36b), night = new THREE.Color(0x0f1a33);
-    let c;
-    if (h >= 8 && h < 17.5) c = day;
-    else if (h >= 17.5 && h < 20) c = day.clone().lerp(dusk, (h - 17.5) / 2.5);
-    else if (h >= 20 && h < 21.5) c = dusk.clone().lerp(night, (h - 20) / 1.5);
-    else if (h >= 6 && h < 8) c = night.clone().lerp(day, (h - 6) / 2);
-    else c = night;
-    scene.background = c;
-    scene.fog = new THREE.Fog(c, 350, 1500);
-    const dark = c.getHSL({}).l < 0.25;
-    sun.intensity = dark ? 0.35 : 1.6;
-    hemi.intensity = dark ? 0.45 : 1.1;
+    // Tageslauf: Sonnenhoehe grob nach Uhrzeit, Farben fuer Tag, Abendrot und Nacht
+    const elev = Math.sin(Math.PI * (h - 6.5) / 13);           // >0 tagsueber
+    const day = Math.min(1, Math.max(0, elev * 3)), glow = Math.max(0, 1 - Math.abs(elev) * 4);
+    const top = mixC(0x0b1530, 0x3f7fd0, day), horizon = mixC(0x1a2440, 0xc9def0, day).lerp(new THREE.Color(0xf0a070), glow * 0.6);
+    skyU.top.value.copy(top);
+    skyU.horizon.value.copy(horizon);
+    skyU.sunDir.value.set(-0.45, Math.max(0.03, elev * 0.8), -0.85).normalize();
+    skyU.sunCol.value.copy(mixC(0xffe2b0, 0xfff6e0, day)).multiplyScalar(day > 0 || glow > 0 ? 1 : 0);
+    sun.position.copy(skyU.sunDir.value).multiplyScalar(600);
+    sun.color.copy(mixC(0xffb070, 0xffffff, day));
+    sun.intensity = 0.3 + 1.4 * day;
+    hemi.intensity = 0.45 + 0.65 * day;
+    scene.background = horizon;
+    scene.fog = new THREE.Fog(horizon, 450, 2600);
+    if (envTarget) envTarget.dispose();
+    envTarget = pmrem.fromScene(envScene, 0, 0.1, 50);
+    waterMat.envMap = envTarget.texture;
+    waterMat.needsUpdate = true;
   }
-  sky();
-  setInterval(sky, 60000);
 
   // ---------- Boot und Ruderer ----------
   const white = new THREE.MeshLambertMaterial({ color: 0xf2f2ee });
@@ -149,6 +169,27 @@ export function start(el, state) {
     return { pivot, blade, side };
   });
   scene.add(boat);
+  // Kielwasser: zwei auslaufende Streifen hinter dem Heck, Deckkraft je nach Tempo
+  const wake = (() => {
+    const pos = [], col = [], idx = [];
+    for (const side of [-1, 1]) {
+      const b = pos.length / 3;
+      for (let i = 0; i <= 10; i++) {
+        const t = i / 10, z = 3.8 + t * 34, x = side * (0.25 + t * 9), w = 0.35 + t * 1.6, a = (1 - t) * (1 - t);
+        pos.push(x - side * w / 2, 0.06, z, x + side * w / 2, 0.06, z);
+        col.push(1, 1, 1, a, 1, 1, 1, a * 0.6);
+        if (i < 10) idx.push(b + 2 * i, b + 2 * i + 1, b + 2 * i + 2, b + 2 * i + 1, b + 2 * i + 3, b + 2 * i + 2);
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute("color", new THREE.Float32BufferAttribute(col, 4));
+    g.setIndex(idx);
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0,
+      depthWrite: false, side: THREE.DoubleSide }));
+    boat.add(m);
+    return m;
+  })();
 
   // ---------- Landschaft in Abschnitten ----------
   const chunks = new Map();
@@ -166,19 +207,47 @@ export function start(el, state) {
   const heading = s => { const p = path.at(s); return Math.atan2(-p[2], -p[3]); };
   const grass = [0x5d8a3c, 0x6f9a45, 0x4f7a34, 0x86a957].map(c => new THREE.Color(c));
   const treeGeo = new THREE.ConeGeometry(4, 13, 6), trunkGeo = new THREE.CylinderGeometry(0.6, 0.8, 3, 5);
-  const treeMat = new THREE.MeshLambertMaterial({ color: 0x2f5d2a }), trunkMat = new THREE.MeshLambertMaterial({ color: 0x5b4330 });
-  const waterMat = new THREE.MeshPhongMaterial({ color: 0x2a62c4, specular: 0x9fc4ff, shininess: 60, side: THREE.DoubleSide });
+  const leafGeo = new THREE.IcosahedronGeometry(5, 0);
+  const treeMat = new THREE.MeshLambertMaterial({ color: 0xffffff }), trunkMat = new THREE.MeshLambertMaterial({ color: 0x5b4330 });
+  const firCols = [0x24502a, 0x2f5d2a, 0x2a4f33].map(c => new THREE.Color(c));
+  const leafCols = [0x4f7f2f, 0x5f8f35, 0x6b8e3a, 0x47703a, 0x7a9a40].map(c => new THREE.Color(c));
+  // Wellen als Normal-Map aus Rauschen, wird mit der Stroemung verschoben
+  const waves = (() => {
+    const N = 128, data = new Uint8Array(N * N * 4), r = rng(4711), hgt = new Float32Array(N * N);
+    const k = [];                                         // einige Sinuswellen, nahtlos kachelbar
+    for (let i = 0; i < 9; i++) k.push([1 + Math.floor(r() * 6), Math.floor(r() * 9) - 4, r() * 6.28, 0.5 / (1 + i * 0.4)]);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      let v = 0;
+      for (const [a, b, ph, amp] of k) v += amp * Math.sin(2 * Math.PI * (a * x + b * y) / N + ph);
+      hgt[y * N + x] = v;
+    }
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const dx = hgt[y * N + (x + 1) % N] - hgt[y * N + (x + N - 1) % N];
+      const dy = hgt[((y + 1) % N) * N + x] - hgt[((y + N - 1) % N) * N + x];
+      const n = new THREE.Vector3(-dx, -dy, 2).normalize(), o = (y * N + x) * 4;
+      data[o] = (n.x * 0.5 + 0.5) * 255; data[o + 1] = (n.y * 0.5 + 0.5) * 255; data[o + 2] = (n.z * 0.5 + 0.5) * 255; data[o + 3] = 255;
+    }
+    const t = new THREE.DataTexture(data, N, N);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.needsUpdate = true;
+    return t;
+  })();
+  const waterMat = new THREE.MeshStandardMaterial({ color: 0x163a5c, roughness: 0.18, metalness: 0.0,
+    normalMap: waves, normalScale: new THREE.Vector2(0.22, 0.22), envMapIntensity: 0.55, side: THREE.DoubleSide });
+  sky();
+  setInterval(sky, 60000);
   const groundMat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
   const wallMat = new THREE.MeshLambertMaterial({ color: 0xe8e2d5 }), roofMat = new THREE.MeshLambertMaterial({ color: 0xa8432c });
   const stoneMat = new THREE.MeshLambertMaterial({ color: 0x9a948a });
 
-  function ribbon(s0, s1, offs, hfn, colfn, mat) {
-    const rows = Math.ceil((s1 - s0) / 10) + 1, cols = offs.length, pos = [], col = [], idx = [];
+  function ribbon(s0, s1, offs, hfn, colfn, mat, uvScale) {
+    const rows = Math.ceil((s1 - s0) / 10) + 1, cols = offs.length, pos = [], col = [], idx = [], uv = [];
     for (let r = 0; r < rows; r++) {
       const s = s0 + (s1 - s0) * r / (rows - 1);
       for (let c = 0; c < cols; c++) {
         const [px, pz] = place(s, offs[c]);
         pos.push(px, hfn(s, c), pz);
+        if (uvScale) uv.push(px / uvScale, pz / uvScale);
         if (colfn) { const k = colfn(s, c); col.push(k.r, k.g, k.b); }
       }
     }
@@ -190,6 +259,7 @@ export function start(el, state) {
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     if (colfn) g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    if (uvScale) g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
     g.setIndex(idx);
     g.computeVertexNormals();
     return new THREE.Mesh(g, mat);
@@ -352,28 +422,57 @@ export function start(el, state) {
     group.add(sp);
   }
 
+  // Farbe des Gelaendes: Uferbefestigung, Wiesen und Felder im Flachen, Weinberge und Fels an steilen Haengen
+  const C = { bank: new THREE.Color(0x8f8a7c), vine: new THREE.Color(0x6f7a34), rock: new THREE.Color(0x857d6c),
+              field: new THREE.Color(0xa9a85a), field2: new THREE.Color(0x8fa04a) };
+  function landColor(s, offs, c) {
+    if (c === 0) return C.bank;
+    const h = ground(s, offs[c]), a = ground(s, offs[Math.max(0, c - 1)]), b = ground(s, offs[Math.min(offs.length - 1, c + 1)]);
+    const slope = Math.abs(b - a) / Math.abs(offs[Math.min(offs.length - 1, c + 1)] - offs[Math.max(0, c - 1)]);
+    const base = grass[(c + Math.floor(s / 90)) % grass.length].clone().offsetHSL(0, 0, Math.sin(s / 37 + c) * 0.03);
+    if (slope > 0.45) return base.lerp(C.rock, 0.55);
+    if (slope > 0.22) return base.lerp(((Math.floor(s / 160) + c) % 3) ? C.vine : C.rock, 0.6);   // Weinberge
+    if (h < 40 && c >= 3) {                                            // flaches Land: Felder in Flecken
+      const f = (Math.floor(s / 260) * 7 + c * 3) % 5;
+      if (f === 0) return base.lerp(C.field, 0.7);
+      if (f === 1) return base.lerp(C.field2, 0.6);
+    }
+    return base;
+  }
+
   function build(i, stops) {
     const s0 = i * CHUNK, s1 = s0 + CHUNK, rand = rng(i * 7919 + 13), g = new THREE.Group();
-    g.add(ribbon(s0, s1, [-WIDTH / 2 - 2, WIDTH / 2 + 2], () => 0, null, waterMat));
+    g.add(ribbon(s0, s1, [-WIDTH / 2 - 2, WIDTH / 2 + 2], () => 0, null, waterMat, 24));
     for (const side of [-1, 1]) {
       const offs = (path.relief ? [0, 6, 40, 100, 200, 350, 600, 1000, 1500] : BANK).map(o => (WIDTH / 2 + o) * side);
-      const mesh = ribbon(s0, s1, offs, (s, c) => ground(s, offs[c]),
-        (s, c) => grass[(c + Math.floor(s / 90)) % grass.length].clone().offsetHSL(0, 0, (Math.sin(s / 37 + c) * 0.03)),
-        groundMat);
+      const mesh = ribbon(s0, s1, offs, (s, c) => ground(s, offs[c]), (s, c) => landColor(s, offs, c), groundMat);
       g.add(mesh);
-      const n = 26;
-      const trees = new THREE.InstancedMesh(treeGeo, treeMat, n), trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, n);
-      const m = new THREE.Matrix4();
+      // Mischwald: Laubbaeume (runde Krone) und Nadelbaeume, in Gruppen, nicht auf Weinberghaengen
+      const n = 64, firs = new THREE.InstancedMesh(treeGeo, treeMat, n), leaves = new THREE.InstancedMesh(leafGeo, treeMat, n);
+      const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, 2 * n), m = new THREE.Matrix4(), q = new THREE.Quaternion();
+      let nf = 0, nl = 0, nt = 0;
+      const cluster = [s0 + rand() * CHUNK, WIDTH / 2 + 20 + rand() * 400];
       for (let k = 0; k < n; k++) {
-        const s = s0 + rand() * CHUNK, d = WIDTH / 2 + 10 + Math.pow(rand(), 1.6) * 300, sc = 0.7 + rand() * 0.8;
-        const y = ground(s, side * d);
-        const [px, pz] = place(s, side * d);
-        m.makeScale(sc, sc, sc).setPosition(px, y + 7.5 * sc, pz);
-        trees.setMatrixAt(k, m);
+        const grouped = rand() < 0.6;
+        const s = grouped ? cluster[0] + (rand() - 0.5) * 70 : s0 + rand() * CHUNK;
+        const d = grouped ? cluster[1] + (rand() - 0.5) * 90 : WIDTH / 2 + 10 + Math.pow(rand(), 1.3) * 700;
+        if (d < WIDTH / 2 + 8) continue;
+        const y = ground(s, side * d), slope = Math.abs(ground(s, side * (d + 30)) - ground(s, side * (d - 30))) / 60;
+        if (slope > 0.22 && slope < 0.45 && rand() < 0.8) continue;      // Weinberg: kaum Baeume
+        const [px, pz] = place(s, side * d), sc = 0.7 + rand() * 0.8, fir = rand() < (y > 120 ? 0.6 : 0.3);
+        q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand() * 6.28);
+        if (fir) {
+          m.compose(new THREE.Vector3(px, y + 7.5 * sc, pz), q, new THREE.Vector3(sc, sc, sc));
+          firs.setMatrixAt(nf, m); firs.setColorAt(nf++, firCols[Math.floor(rand() * firCols.length)]);
+        } else {
+          m.compose(new THREE.Vector3(px, y + 6.5 * sc, pz), q, new THREE.Vector3(sc * 1.1, sc * 0.95, sc * 1.1));
+          leaves.setMatrixAt(nl, m); leaves.setColorAt(nl++, leafCols[Math.floor(rand() * leafCols.length)]);
+        }
         m.makeScale(sc, sc, sc).setPosition(px, y + 1.5 * sc, pz);
-        trunks.setMatrixAt(k, m);
+        trunks.setMatrixAt(nt++, m);
       }
-      g.add(trees, trunks);
+      firs.count = nf; leaves.count = nl; trunks.count = nt;
+      g.add(firs, leaves, trunks);
     }
     for (const [km, name] of stops) {
       const s = km * 1000;
@@ -389,7 +488,7 @@ export function start(el, state) {
 
   function dispose(g) {
     g.traverse(o => {
-      if (o.geometry && o.geometry !== treeGeo && o.geometry !== trunkGeo) o.geometry.dispose();
+      if (o.geometry && o.geometry !== treeGeo && o.geometry !== trunkGeo && o.geometry !== leafGeo) o.geometry.dispose();
       if (o.material && o.material.map) { o.material.map.dispose(); o.material.dispose(); }
     });
   }
@@ -551,6 +650,9 @@ export function start(el, state) {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }
+    skyDome.position.copy(camera.position);
+    wake.material.opacity = Math.min(0.55, speed / 4.5 * 0.55) * (0.8 + 0.2 * (inDrive ? 1 : 0));
+    waves.offset.x += dt * 0.012; waves.offset.y -= dt * 0.03;
     renderer.render(scene, camera);
   }
 

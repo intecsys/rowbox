@@ -10,6 +10,7 @@
 - Phone display, 3D view: the Rhine follows its real course from Basel to Rotterdam (OpenStreetMap), with 74 real bridges by name, towns on their real bank, a small map with your position and the OSM credit; other routes keep the generated river. Routes are built with `tools/build_route.py` and ship as small files in `static/routes/` (Rhine: ~100 KB), so the box stays offline
 - Phone display, 3D view: fixed the rower sometimes staying invisible after the first frame
 - Phone display, 3D view: real terrain along the Rhine (AWS Terrain Tiles, ~30 m grid), so the Middle Rhine valley rises 150–200 m on both banks; 242 landmarks from OpenStreetMap as simple models with name signs (castles, ruins, cathedrals, churches, towers, windmills, rocks such as the Loreley; Pfalzgrafenstein sits in the river)
+- Phone display, 3D view: new look: sky with colour gradient and sun by time of day, haze toward the horizon, water that reflects the sky with moving ripples, wake behind the boat, mixed forest (broadleaf and conifers in groups), vineyard and rock colours on steep slopes, fields in the flat
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2
