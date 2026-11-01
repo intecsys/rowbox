@@ -842,7 +842,11 @@ function river(){
   out+='<path d="'+p+'" fill="none" stroke="#ff5a1f" stroke-width="5" stroke-linecap="round"/>'}
  for(const it of items){const x=X(it.y);
   if(it.cls=='here')out+='<g transform="translate('+x.toFixed(1)+','+it.y.toFixed(1)+')"><circle r="17" fill="#ff5a1f" opacity=".25"/>'+
-   '<path d="M-11,1 L11,1 L7,8 L-7,8 Z" fill="#f2f2ee"/><path d="M0,-12 L0,0 M0,-12 L8,-2 L0,-2" stroke="#f2f2ee" stroke-width="2.4" fill="none" stroke-linejoin="round"/></g>';
+   '<path d="M0,-19 C3.2,-10 3.2,10 0,19 C-3.2,10 -3.2,-10 0,-19 Z" fill="#f2f2ee"/>'+
+   '<path d="M-2.5,-1 L-19,-6 M2.5,-1 L19,-6" stroke="#f2f2ee" stroke-width="1.8" stroke-linecap="round"/>'+
+   '<ellipse cx="-20" cy="-6.4" rx="3.6" ry="1.9" fill="#ff5a1f" transform="rotate(17 -20 -6.4)"/>'+
+   '<ellipse cx="20" cy="-6.4" rx="3.6" ry="1.9" fill="#ff5a1f" transform="rotate(-17 20 -6.4)"/>'+
+   '<circle r="2.8" cy="2" fill="#ff5a1f"/></g>';
   else out+='<circle cx="'+x.toFixed(1)+'" cy="'+it.y.toFixed(1)+'" r="7" fill="'+(it.cls=='past'?'#ff5a1f':'#000')+
    '" stroke="'+(it.cls=='past'?'#ff5a1f':'#f2f2ee')+'" stroke-width="2.5"/>'}
  svg.innerHTML=out}
