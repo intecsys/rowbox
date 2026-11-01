@@ -27,7 +27,7 @@ labels: bug
 | Power | <!-- PiSugar 3 / USB power bank / power supply --> |
 | PiSugar 3 detected? | <!-- yes / no / not used. Battery level shown on the display? --> |
 | Whisplay working? | <!-- Display shows the Rowbox screens? Sound works? Output of: aplay -l --> |
-| S4 firmware | <!-- portal Status page or display Info screen, e.g. 2.10 --> |
+| S4 firmware | <!-- portal Status page or display Info screen; on the S4: shown at power-on (up to 1.48) or Advanced function 9 → OK (1.49+) --> |
 | Fitness app | <!-- e.g. Rowing Workout, EXR, Kinomap; app version; iPhone/Android --> |
 
 ### Logs

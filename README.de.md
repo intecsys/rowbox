@@ -148,6 +148,13 @@ Der Simulator rudert 60 Sekunden, pausiert 20 und beginnt von vorn. Mit `Ctrl+C`
   `/boot/firmware/cmdline.txt` ein. Nach dem Neustart funktionieren solche Netze, zu tun ist
   nichts. Getestet mit Kernel 6.18.
 
+## S4-Firmware
+
+Die Rowbox liest beim Verbinden die Firmware-Version des S4 aus und zeigt sie im Portal (Status) und
+auf dem Display (Info). Am S4 selbst: Bis Version 1.48 erscheint sie beim Einschalten, ab 1.49 unter
+**Advanced Function 9**, dann **OK**. Updates macht nur WaterRower (die Platine wird eingeschickt);
+öffentliche Release Notes gibt es nicht. Bitte die Version bei Fehlermeldungen angeben.
+
 ## Bekannte Probleme
 - **"Killed" bei der Installation:** Der Zero hat nur 512 MB Arbeitsspeicher, apt läuft manchmal
   über. `setup.sh` einfach noch einmal starten.

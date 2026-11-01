@@ -145,6 +145,13 @@ The simulator rows for 60 s, pauses 20 s and repeats. `Ctrl+C`, `kill %1` and
   `/boot/firmware/cmdline.txt`. After the reboot these networks work; there is nothing to do.
   Tested with kernel 6.18.
 
+## S4 firmware
+
+Rowbox reads the S4's firmware version when it connects and shows it in the portal (Status) and
+on the display (Info). On the S4 itself: versions up to 1.48 show it at power-on; from 1.49 go to
+**Advanced function 9** and press **OK**. Firmware updates are only done by WaterRower (the circuit
+board is sent in); there are no public release notes. Please include the version in bug reports.
+
 ## Known issues
 - **"Killed" during installation:** the Zero has only 512 MB RAM and apt sometimes runs out.
   Run `setup.sh` again, it continues where it failed.
