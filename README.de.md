@@ -288,7 +288,7 @@ GPL-3.0-or-later, siehe [LICENSE](LICENSE). `static/three.module.min.js` ist
 [three.js](https://threejs.org) (MIT, siehe [static/LICENSE.three.txt](static/LICENSE.three.txt)). Die Flussverläufe in `static/routes/`
 stammen aus [OpenStreetMap](https://www.openstreetmap.org/copyright)-Daten, © OpenStreetMap-Mitwirkende,
 und stehen unter der [ODbL 1.0](https://opendatacommons.org/licenses/odbl/); die Brückennamen kommen aus
-[Wikidata](https://www.wikidata.org) (CC0). Du darfst Rowbox frei nutzen, ändern und weitergeben,
+[Wikidata](https://www.wikidata.org) (CC0), die Geländehöhen aus den [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen/Tilezen, offene Daten mit Quellenangabe). Du darfst Rowbox frei nutzen, ändern und weitergeben,
 auch kommerziell, solange du den vollständigen Quellcode deiner Version unter derselben Lizenz
 veröffentlichst.
 

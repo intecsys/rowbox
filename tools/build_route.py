@@ -220,14 +220,18 @@ def landmark_kind(t):
     """Art einer Landmarke und wie weit sie vom Fluss entfernt sein darf (Meter)."""
     if not (t.get("name") or t.get("name:de")):
         return None, 0
-    hist, bld = t.get("historic", ""), t.get("building", "")
-    if hist in ("castle", "fort") or (hist == "ruins" and t.get("ruins") in ("castle", "fortress")):
-        return ("ruin" if hist == "ruins" or t.get("ruins") == "yes" else "castle"), 2500
-    if bld == "cathedral" or t.get("church:type") == "cathedral" or "Dom " in t.get("name", "") + " " \
-            or t.get("name", "").endswith("dom"):
+    hist, bld, name = t.get("historic", ""), t.get("building", ""), t.get("name:de") or t.get("name", "")
+    if hist == "castle" or (hist == "fort" and t.get("wikipedia")) or \
+            (hist == "ruins" and t.get("ruins") in ("castle", "fortress")):
+        return ("ruin" if hist == "ruins" or t.get("ruins") == "yes" else "castle"), 1600
+    big = ("Dom", "Münster", "Kathedrale", "Cathédrale", "Kathedraal", "Domkirche")
+    if bld == "cathedral" or t.get("church:type") == "cathedral" or any(w in name for w in big) \
+            or name.endswith("dom"):
         return "cathedral", 1500
     if bld in ("church", "chapel") or t.get("amenity") == "place_of_worship":
         return ("church", 700) if t.get("wikidata") else (None, 0)
+    if t.get("man_made") == "windmill" and t.get("wikidata"):
+        return "windmill", 1200
     if t.get("man_made") == "lighthouse":
         return "lighthouse", 800
     if t.get("man_made") == "tower" and t.get("tower:type") in ("observation", "defensive", "bell_tower"):
@@ -238,7 +242,8 @@ def landmark_kind(t):
 
 
 def landmark_rank(t, kind):
-    base = {"cathedral": 6, "castle": 5, "rock": 5, "ruin": 4, "lighthouse": 3, "tower": 3, "church": 2}[kind]
+    base = {"cathedral": 6, "castle": 5, "rock": 5, "ruin": 4, "windmill": 4, "lighthouse": 3, "tower": 3,
+            "church": 2}[kind]
     return base + (1 if t.get("wikipedia") else 0) + (1 if t.get("heritage") else 0)
 
 
@@ -352,12 +357,14 @@ def main():
             if d > reach or s <= 0 or s >= cum[-1]:
                 continue
             name = t.get("name:de") or t.get("name")
+            if "island" in t.get("castle_location", "") and d < 400:
+                d = 0                                    # Inselburg: im Fluss zeigen
             landmarks.append([round(game_s(s)), side, round(d), kind, name, landmark_rank(t, kind)])
-    # pro 1,5 km und Seite nur die wichtigste Landmarke, damit das Ufer nicht ueberladen wirkt
+    # pro 700 m und Seite nur die wichtigste Landmarke, damit das Ufer nicht ueberladen wirkt
     landmarks.sort(key=lambda m: -m[5])
     keep = []
     for m in landmarks:
-        if not any(abs(m[0] - k[0]) < 1500 and m[1] == k[1] for k in keep) and \
+        if m[2] < 100 or not any(abs(m[0] - k[0]) < 700 and m[1] == k[1] and k[2] >= 100 for k in keep) and \
                 not any(m[4] == k[4] and abs(m[0] - k[0]) < 5000 for k in keep):
             keep.append(m)
     landmarks = sorted(m[:5] for m in keep)
@@ -396,7 +403,7 @@ def main():
 
     out = {
         "id": a.route,
-        "attribution": "© OpenStreetMap-Mitwirkende (ODbL), Wikidata",
+        "attribution": "© OpenStreetMap-Mitwirkende (ODbL), Wikidata, Mapzen",
         "width": a.width,
         "start": round(off),
         "pts": [v for p in pts for v in (round(p[0], 1), round(p[1], 1))],

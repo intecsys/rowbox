@@ -249,8 +249,10 @@ export function start(el, state) {
   const darkRoof = new THREE.MeshLambertMaterial({ color: 0x3c4450 }), ruinMat = new THREE.MeshLambertMaterial({ color: 0xb3aa98 });
   const whiteMat = new THREE.MeshLambertMaterial({ color: 0xf4f4f0 }), redMat = new THREE.MeshLambertMaterial({ color: 0xc8382c });
   const rockMat = new THREE.MeshLambertMaterial({ color: 0x6e6a62 });
+  // Seitlicher Abstand etwas gestaucht, damit Landmarken beim Vorbeifahren im Bild bleiben
+  const near = d => Math.min(750, WIDTH / 2 + 35 + 0.6 * Math.max(0, d - WIDTH / 2 - 35));
   function landmark(group, s, off, kind, name, rand) {
-    const [x, z] = place(s, off), y = ground(s, off) - 1, rot = heading(s), part = new THREE.Group();
+    const [x, z] = place(s, off), y = Math.abs(off) < WIDTH / 2 ? 0 : ground(s, off) - 1, rot = heading(s), part = new THREE.Group();
     const add = (geo, mat, px, py, pz, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.rotation.y = ry; part.add(m); return m; };
     let top = 30;
     if (kind === "castle") {
@@ -286,6 +288,22 @@ export function start(el, state) {
       for (let k = 0; k < 4; k++) add(new THREE.CylinderGeometry(3.6 - k * 0.3, 4 - k * 0.3, 7, 12), lh && k % 2 ? redMat : (lh ? whiteMat : stoneMat), 0, 3.5 + k * 7, 0);
       add(new THREE.CylinderGeometry(3, 3, 4, 12), lh ? redMat : darkRoof, 0, 30, 0);
       top = 38;
+    } else if (kind === "windmill") {
+      add(new THREE.CylinderGeometry(3.2, 5.5, 18, 8), new THREE.MeshLambertMaterial({ color: 0x5a4636 }), 0, 9, 0);
+      add(new THREE.ConeGeometry(3.8, 5, 8), darkRoof, 0, 20.5, 0);
+      const hub = new THREE.Group();
+      hub.position.set(0, 18, -4.2);
+      hub.rotation.z = rand() * Math.PI;
+      for (let k = 0; k < 4; k++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(2.4, 13, 0.3), whiteMat);
+        blade.position.y = 6.5;
+        const arm = new THREE.Group();
+        arm.rotation.z = k * Math.PI / 2;
+        arm.add(blade);
+        hub.add(arm);
+      }
+      part.add(hub);
+      top = 32;
     } else if (kind === "rock") {
       if (!path.relief) {
         const r = add(new THREE.DodecahedronGeometry(40, 0), rockMat, 0, 20, 0);
@@ -297,7 +315,7 @@ export function start(el, state) {
     part.rotation.y = rot;
     group.add(part);
     if (name) {
-      const sp = sign(name, false), k = 1 + Math.abs(off) / 500;
+      const sp = sign(name, false), k = 1.5 + Math.abs(off) / 300;
       sp.scale.multiplyScalar(k);
       sp.position.set(x, y + top + 6 * k, z);
       group.add(sp);
@@ -364,7 +382,8 @@ export function start(el, state) {
     }
     for (const [s, name] of path.bridges || []) if (s >= s0 && s < s1) bridge(g, s, name);
     for (const [s, side, d, kind, name] of path.landmarks || [])
-      if (s >= s0 && s < s1) landmark(g, s, side * Math.min(1300, Math.max(WIDTH / 2 + 35, d)), kind, name, rng(s));
+      if (s >= s0 && s < s1)                           // im Fluss (Inselburg) oder am Ufer, hoechstens 1,3 km weg
+        landmark(g, s, side * (d < 100 ? Math.min(d, WIDTH / 3) : near(d)), kind, name, rng(s));
     return g;
   }
 
