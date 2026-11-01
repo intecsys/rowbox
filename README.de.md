@@ -7,7 +7,8 @@ Der S4-Monitor des WaterRower hat einen USB-Anschluss, aber kein Bluetooth (beim
 und meldet sich als normales **Bluetooth-FTMS-Rudergerät**, das Fitness-Apps verstehen. So landen
 die Einheiten zum Beispiel über *Rowing Workout* auf der Apple Watch in Apple Health und Fitness.
 
-Sie läuft auf einem Raspberry Pi Zero 2 W mit PiSugar-3-Akku und PiSugar-Whisplay-Display.
+Sie läuft auf einem Raspberry Pi Zero 2 W mit PiSugar-3-Akku und PiSugar-Whisplay-Display, oder
+schlanker ohne Akku (**Lite**) oder ohne Display und Akku (**Ultralight**).
 
 [English](README.md)
 
@@ -80,6 +81,24 @@ Sie läuft auf einem Raspberry Pi Zero 2 W mit PiSugar-3-Akku und PiSugar-Whispl
 
 ## Teile
 
+### Varianten
+
+| | Voll | Lite | Ultralight |
+|---|---|---|---|
+| Raspberry Pi Zero 2 W | ✓ | ✓ | ✓ |
+| PiSugar Whisplay (Display) | ✓ | ✓ | – |
+| PiSugar 3 (Akku) | ✓ | – (USB-Powerbank oder Netzteil) | – (USB-Powerbank oder Netzteil) |
+| Bluetooth FTMS, Kraftkurve, Logbuch, FIT/TCX, Reisen, Webportal, MQTT | ✓ | ✓ | ✓ |
+| Display-Ansichten, Taktgeber, Live-Kurve, Töne, Einrichtungsassistent | ✓ | ✓ | – |
+| Akkuanzeige, Ausschalttaste, Uhrzeit ohne WLAN | ✓ | – | – |
+| Teilekosten (ca.) | 100 € | 70 € | 35 € |
+| Installation | `setup.sh` | `setup.sh --no-pisugar` | `setup.sh --no-display --no-pisugar` |
+
+Lite und Ultralight sind neu und noch nicht an einer echten Box getestet; Rückmeldungen sind
+willkommen. Ohne PiSugar die Box vor dem Ausstecken im Webportal ausschalten.
+
+### Teileliste
+
 | Teil | Hinweis |
 |---|---|
 | Raspberry Pi Zero 2 W | mit eingelöteter Stiftleiste |
@@ -118,20 +137,18 @@ Stromanschluss.
    `setup.sh` spricht je nach Systemsprache Deutsch oder Englisch; festlegen lässt es sich mit
    `sudo bash rowbox/setup.sh --lang de` (oder `--lang en`).
 
-### Minimal-Aufbau ohne Display und Akku (experimentell)
+### Lite oder Ultralight installieren
 
-Die Rowbox läuft auch nur mit Raspberry Pi Zero 2 W, USB-Kabel und Netzteil oder Powerbank. Es
-bleiben Bluetooth-Brücke, Kraftkurve, Logbuch, FIT/TCX-Export, Reisen und das Webportal; es fehlen
-Display, Taktgeber, Töne, Akkuanzeige und Ausschalttaste (Ausschalten im Portal).
+Schritt 3 mit einer oder zwei Optionen (siehe [Varianten](#varianten)):
 
 ```sh
-sudo bash rowbox/setup.sh --no-display --no-pisugar
+sudo bash rowbox/setup.sh --no-pisugar                # Lite: Display, kein Akku
+sudo bash rowbox/setup.sh --no-display --no-pisugar   # Ultralight: kein Display, kein Akku
 ```
 
-Ohne Display gibt es keinen Einrichtungsassistenten: `setup.sh` zeigt am Ende das Passwort fürs
-Portal und den Namen des Hotspots (später nachsehen mit `sudo grep password /etc/rowbox.json`).
-Beide Optionen gehen auch einzeln, zum Beispiel `--no-pisugar` mit Whisplay an einer Powerbank.
-Noch nicht an einer echten Box getestet, Rückmeldungen willkommen.
+Ultralight hat keinen Einrichtungsassistenten: `setup.sh` zeigt am Ende das Passwort fürs Portal
+und den Namen des Hotspots (später nachsehen mit `sudo grep password /etc/rowbox.json`). Danach in
+der App mit **"WaterRower S4"** verbinden und das Portal unter `http://<hostname>.local` öffnen.
 
 ## Benutzung
 
