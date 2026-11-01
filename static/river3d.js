@@ -109,24 +109,36 @@ export function start(el, state) {
   scene.add(skyDome);
   const pmrem = new THREE.PMREMGenerator(renderer), envScene = new THREE.Scene();
   envScene.add(new THREE.Mesh(new THREE.SphereGeometry(10, 24, 12), skyMat));
-  let envTarget = null;
+  let envTarget = null, WX = null, wxKey = "";          // Wetter an der Position (von der Box, wenn online)
   const mixC = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), Math.min(1, Math.max(0, t)));
+  function wxKind() {
+    const c = WX && WX.code;
+    if (c == null) return "";
+    if ([71, 73, 75, 77, 85, 86].includes(c)) return "snow";
+    if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82) || c >= 95) return "rain";
+    return "";
+  }
   function sky() {
     const h = new Date().getHours() + new Date().getMinutes() / 60;
     // Tageslauf: Sonnenhoehe grob nach Uhrzeit, Farben fuer Tag, Abendrot und Nacht
     const elev = Math.sin(Math.PI * (h - 6.5) / 13);           // >0 tagsueber
     const day = Math.min(1, Math.max(0, elev * 3)), glow = Math.max(0, 1 - Math.abs(elev) * 4);
     const top = mixC(0x0b1530, 0x3f7fd0, day), horizon = mixC(0x1a2440, 0xc9def0, day).lerp(new THREE.Color(0xf0a070), glow * 0.6);
+    // Bewoelkung: Himmel grauer, Sonne schwaecher; Sicht bestimmt den Dunst
+    const cloud = WX && WX.cloud != null ? WX.cloud / 100 : 0, wet = wxKind() === "rain" ? 0.25 : 0;
+    top.lerp(mixC(0x1c2026, 0x8d98a4, day), Math.min(0.9, cloud * 0.8 + wet));
+    horizon.lerp(mixC(0x22262c, 0xb9c1c9, day), Math.min(0.8, cloud * 0.6 + wet));
     skyU.top.value.copy(top);
     skyU.horizon.value.copy(horizon);
     skyU.sunDir.value.set(-0.45, Math.max(0.03, elev * 0.8), -0.85).normalize();
-    skyU.sunCol.value.copy(mixC(0xffe2b0, 0xfff6e0, day)).multiplyScalar(day > 0 || glow > 0 ? 1 : 0);
+    skyU.sunCol.value.copy(mixC(0xffe2b0, 0xfff6e0, day)).multiplyScalar((day > 0 || glow > 0 ? 1 : 0) * Math.max(0, 1 - cloud * 1.2));
     sun.position.copy(skyU.sunDir.value).multiplyScalar(600);
     sun.color.copy(mixC(0xffb070, 0xffffff, day));
-    sun.intensity = 0.3 + 1.4 * day;
+    sun.intensity = (0.3 + 1.4 * day) * (1 - 0.6 * cloud);
     hemi.intensity = 0.45 + 0.65 * day;
     scene.background = horizon;
-    scene.fog = new THREE.Fog(horizon, 450, 2600);
+    const vis = WX && WX.vis ? Math.min(2600, Math.max(250, WX.vis)) : 2600;
+    scene.fog = new THREE.Fog(horizon, vis * 0.17, vis);
     if (envTarget) envTarget.dispose();
     envTarget = pmrem.fromScene(envScene, 0, 0.1, 50);
     waterMat.envMap = envTarget.texture;
@@ -169,6 +181,41 @@ export function start(el, state) {
     return { pivot, blade, side };
   });
   scene.add(boat);
+  // Regen und Schnee: Teilchen in einem Kasten um die Kamera
+  const fall = (() => {
+    const n = 1400, pos = new Float32Array(n * 6), r = rng(99);
+    for (let i = 0; i < n; i++) {
+      const x = (r() - 0.5) * 80, y = r() * 40, z = (r() - 0.5) * 80;
+      pos.set([x, y, z, x, y - 0.9, z], i * 6);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const lines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xc8d4e0, transparent: true, opacity: 0.45 }));
+    lines.frustumCulled = false;
+    lines.visible = false;
+    scene.add(lines);
+    return { lines, pos, n };
+  })();
+  function weatherStep(dt, cx, cz) {
+    const kind = wxKind();
+    fall.lines.visible = !!kind;
+    if (!kind) return;
+    const snow = kind === "snow", v = snow ? 1.2 : 11, p = fall.pos, wind = (WX.wind || 0) * 0.4;
+    fall.lines.material.color.set(snow ? 0xffffff : 0xc8d4e0);
+    fall.lines.material.opacity = snow ? 0.9 : Math.min(0.6, 0.25 + (WX.rain || 0) * 0.15);
+    const len = snow ? 0.12 : 0.9;
+    for (let i = 0; i < fall.n; i++) {
+      const o = i * 6;
+      let x = p[o] + wind * dt + (snow ? Math.sin((p[o + 1] + i) * 0.7) * dt * 0.6 : 0), y = p[o + 1] - v * dt, z = p[o + 2];
+      // Kasten wandert mit der Kamera mit
+      if (y < 0) y += 40;
+      x = ((x - cx + 40) % 80 + 80) % 80 - 40 + cx;
+      z = ((z - cz + 40) % 80 + 80) % 80 - 40 + cz;
+      p[o] = x; p[o + 1] = y; p[o + 2] = z; p[o + 3] = x - wind * 0.05; p[o + 4] = y - len; p[o + 5] = z;
+    }
+    fall.lines.geometry.attributes.position.needsUpdate = true;
+  }
+
   // Kielwasser: zwei auslaufende Streifen hinter dem Heck, Deckkraft je nach Tempo
   const wake = (() => {
     const pos = [], col = [], idx = [];
@@ -500,7 +547,10 @@ export function start(el, state) {
     "background:rgba(10,22,40,.55);display:none;pointer-events:none";
   credit.style.cssText = "position:absolute;left:8px;bottom:6px;font:500 10px system-ui,sans-serif;" +
     "color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.6);display:none;pointer-events:none";
-  el.append(map, credit);
+  const wxLabel = document.createElement("div");
+  wxLabel.style.cssText = "position:absolute;left:8px;top:8px;padding:3px 8px;border-radius:10px;" +
+    "background:rgba(10,22,40,.55);color:#fff;font:600 12px system-ui,sans-serif;display:none;pointer-events:none";
+  el.append(map, credit, wxLabel);
   let mapAt = 0;
   function minimap(x, z, fx, fz) {
     const show = !!path.real;
@@ -650,9 +700,19 @@ export function start(el, state) {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }
+    const wk = JSON.stringify(G.weather || null);
+    if (wk !== wxKey) {
+      wxKey = wk; WX = G.weather || null; sky();
+      wxLabel.textContent = (WX && WX.label) || "";
+      wxLabel.style.display = WX && WX.label ? "block" : "none";
+      const w = WX && WX.wind != null ? WX.wind : 2;
+      waterMat.normalScale.setScalar(Math.min(0.6, 0.14 + w * 0.045));
+    }
+    weatherStep(dt, camera.position.x, camera.position.z);
     skyDome.position.copy(camera.position);
     wake.material.opacity = Math.min(0.55, speed / 4.5 * 0.55) * (0.8 + 0.2 * (inDrive ? 1 : 0));
-    waves.offset.x += dt * 0.012; waves.offset.y -= dt * 0.03;
+    const flow = 1 + (WX && WX.wind ? WX.wind * 0.15 : 0.3);
+    waves.offset.x += dt * 0.012 * flow; waves.offset.y -= dt * 0.03 * flow;
     renderer.render(scene, camera);
   }
 

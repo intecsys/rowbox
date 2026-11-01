@@ -43,8 +43,13 @@ slimmer versions without battery (**Light**) or without display and battery (**U
 - **Phone as display:** `http://<hostname>.local/display` shows the box's screens full-screen on
   your phone: training, force curve, pacer, live wave, journey and status, switched by swiping left
   and right. With the Ultralight version this is your display. The journey screen shows a small
-  3D view on top: a single scull whose rower moves in your real stroke rhythm, with river banks,
-  towns and bridges at the stages (generated scenery, experimental).
+  3D view on top: a single scull whose rower moves in your real stroke rhythm (experimental).
+  On the Rhine the river follows its real course from OpenStreetMap, with the real terrain, bridges
+  and landmarks (castles, cathedrals, the Loreley, windmills) and a small map; other routes use
+  generated scenery. When the box is online it also shows the current weather at your virtual
+  position (clouds, rain, snow, fog, wind on the water). For that the box sends that position, not
+  yours, to [Open-Meteo](https://open-meteo.com) about every 15 minutes; you can switch it off in
+  the settings.
 
   <p align="center"><img src="docs/phone_display_en.png" width="760" alt="Phone as display: training, force curve, pacer and journey screens"></p>
 

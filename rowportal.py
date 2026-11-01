@@ -47,7 +47,8 @@ DEFAULTS = {"led": "warn", "timeout": 120, "summary": 600, "hotspot": True, "sou
             "password": None, "ssid": None,
             "mqtt_host": "", "mqtt_port": 1883, "mqtt_user": "", "mqtt_password": "",
             "mqtt_topic": "rowbox", "anim": "pacer", "pacer_spm": 0, "views": None, "game": True,
-            "display": True}          # False: ohne Whisplay eingerichtet (setup.sh --no-display)
+            "display": True,          # False: ohne Whisplay eingerichtet (setup.sh --no-display)
+            "weather": True}          # echtes Wetter an der virtuellen Position (nur wenn die Box online ist)
 # Ansichten, die man mit der Display-Taste durchblaettern kann (Automatik ist immer dabei).
 # Info bleibt immer an: dort steht das Passwort fuers Portal.
 VIEW_CHOICES = [("status", "Status"), ("training", "Training"), ("force", "Kraftkurve"),
@@ -985,6 +986,85 @@ def screen_page():
     return body
 
 
+# ---------- Wetter an der virtuellen Position ----------
+# Die Reise kennt fuer Strecken mit echtem Verlauf die Lage alle 2 km (static/routes/<id>.json, "geo").
+# Ist die Box online, holt sie dort hoechstens alle 15 Minuten das aktuelle Wetter (Open-Meteo,
+# frei fuer nicht-kommerzielle Nutzung, ohne Anmeldung). Im Hotspot ohne Internet bleibt es leer.
+WEATHER_URL = ("https://api.open-meteo.com/v1/forecast?latitude={lat:.2f}&longitude={lon:.2f}"
+               "&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m,precipitation,visibility,is_day"
+               "&wind_speed_unit=ms")
+WEATHER_TTL = 900
+WEATHER = {"key": None, "ts": 0.0, "data": None, "busy": False, "failed": 0.0}
+ROUTE_GEO = {}
+
+
+def route_latlon(rid, km):
+    path = os.path.join(STATIC_DIR, "routes", f"{rid}.json")
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return None
+    if ROUTE_GEO.get(rid, (None,))[0] != mtime:
+        R = read_json(path, {})
+        ROUTE_GEO[rid] = (mtime, R.get("start", 0), R.get("geo"))
+    _, start, geo = ROUTE_GEO[rid]
+    if not geo or not geo.get("ll"):
+        return None
+    ll, n = geo["ll"], len(geo["ll"]) // 2
+    i = max(0, min(n - 1, round((km * 1000 - start) / geo["step"])))
+    return ll[2 * i], ll[2 * i + 1]
+
+
+def weather_text(code):
+    """WMO-Wettercode in Worte (kurz, fuer die Anzeige)."""
+    for codes, txt in (((0,), "klar"), ((1,), "heiter"), ((2,), "wolkig"), ((3,), "bedeckt"),
+                       ((45, 48), "Nebel"), ((51, 53, 55, 56, 57), "Nieselregen"),
+                       ((61, 80), "leichter Regen"), ((63, 65, 66, 67, 81, 82), "Regen"),
+                       ((71, 73, 75, 77, 85, 86), "Schnee"), ((95, 96, 99), "Gewitter")):
+        if code in codes:
+            return L(txt)
+    return ""
+
+
+def fetch_weather(key, lat, lon):
+    import urllib.request
+    try:
+        req = urllib.request.Request(WEATHER_URL.format(lat=lat, lon=lon),
+                                     headers={"User-Agent": "Rowbox (+https://github.com/intecsys/rowbox)"})
+        with urllib.request.urlopen(req, timeout=8) as r:
+            c = json.load(r)["current"]
+        data = {"t": c.get("temperature_2m"), "code": c.get("weather_code"), "cloud": c.get("cloud_cover"),
+                "wind": c.get("wind_speed_10m"), "rain": c.get("precipitation"), "vis": c.get("visibility"),
+                "day": c.get("is_day")}
+        with lock:
+            WEATHER.update(key=key, ts=time.time(), data=data)
+    except (OSError, ValueError, KeyError):
+        with lock:                                  # offline: erst in 5 Minuten wieder versuchen
+            WEATHER["failed"] = time.time()
+    finally:
+        WEATHER["busy"] = False
+
+
+def weather_for(rid, km):
+    pos = route_latlon(rid, km)
+    if not pos:
+        return None
+    key = (round(pos[0], 1), round(pos[1], 1))
+    now = time.time()
+    with lock:
+        due = WEATHER["key"] != key or now - WEATHER["ts"] > WEATHER_TTL
+        if due and not WEATHER["busy"] and now - WEATHER["failed"] > 300:
+            WEATHER["busy"] = True
+            threading.Thread(target=fetch_weather, args=(key, *pos), daemon=True).start()
+        # bis zum naechsten Abruf das letzte Wetter zeigen, wenn es nicht aelter als eine Stunde ist
+        data = WEATHER["data"] if now - WEATHER["ts"] < 3600 else None
+    if not data:
+        return None
+    label = " · ".join(x for x in (f"{data['t']:.0f} °C" if data.get("t") is not None else "",
+                                     weather_text(data.get("code"))) if x)
+    return dict(data, label=label)
+
+
 def screen_json():
     """Langsame Werte fuer die Handy-Anzeige: Reise und Akku."""
     conf = read_json(CONF, {})
@@ -1003,6 +1083,8 @@ def screen_json():
                           "next_left": dec(st["next_left"]), "left": dec(st["left"]),
                           "eta_next": eta(st["eta_next"]), "eta_goal": eta(st["eta_goal"]),
                           "km": st["km"], "total": st["total"], "stops": [[k, n] for k, n in st["stops"]]}
+        if conf.get("weather", True):
+            out["journey"]["weather"] = weather_for(st["route"], st["km"])
     return json.dumps(out)
 
 
@@ -1377,7 +1459,9 @@ def settings_page(conf, msg=""):
 <div class="card"><h2>{L("Reise und Trophäen")}</h2>
 <label class="dim">{L("Anzeigen")}</label><select name="game">
 <option value="1" {sel("game", True)}>{L("an")}</option><option value="0" {sel("game", False)}>{L("aus")}</option></select>
-<label class="dim">{L("Strecke (ein Wechsel beginnt eine neue Reise bei 0 km)")}</label><select name="route">{route_opts()}</select></div>
+<label class="dim">{L("Strecke (ein Wechsel beginnt eine neue Reise bei 0 km)")}</label><select name="route">{route_opts()}</select>
+<label class="dim">{L("Echtes Wetter in der 3D-Ansicht (holt die Box bei Open-Meteo, wenn sie online ist)")}</label><select name="weather">
+<option value="1" {sel("weather", True)}>{L("an")}</option><option value="0" {sel("weather", False)}>{L("aus")}</option></select></div>
 """ + (f"""<div class="card"><h2>{L("Ansichten auf dem Display")}</h2>
 <p class="dim">{L("Welche Ansichten die Display-Taste durchblättert. Die Automatik ist immer dabei, Info auch (dort steht das Passwort).")}</p>
 {view_checks(conf)}</div>
@@ -1735,6 +1819,7 @@ class Handler(BaseHTTPRequestHandler):
                        "pacer_spm": max(0, min(40, int(f.get("pacer_spm") or 0))),
                        "views": [k for k, _ in VIEW_CHOICES if k == "info" or f.get("v_" + k)],
                        "game": f.get("game", "1") == "1",
+                       "weather": f.get("weather", "1") == "1",
                        "ssid": (f.get("ssid") or conf["ssid"]).strip()[:32],
                        "password": f.get("password") or conf["password"],
                        "mqtt_host": (f.get("mqtt_host") or "").strip()[:100],

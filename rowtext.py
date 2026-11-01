@@ -324,6 +324,12 @@ EN = {
     "Puls_max": "HR_max",
     # Export
     "Indoor-Rudern (Rowbox)": "Indoor rowing (Rowbox)",
+    "Echtes Wetter in der 3D-Ansicht (holt die Box bei Open-Meteo, wenn sie online ist)":
+        "Real weather in the 3D view (the box fetches it from Open-Meteo when online)",
+    # Wetter auf der Reise
+    "klar": "clear", "heiter": "mostly sunny", "wolkig": "partly cloudy", "bedeckt": "overcast",
+    "Nebel": "fog", "Nieselregen": "drizzle", "leichter Regen": "light rain", "Regen": "rain",
+    "Schnee": "snow", "Gewitter": "thunderstorm",
 }
 
 

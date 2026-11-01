@@ -44,8 +44,12 @@ schlanker ohne Akku (**Light**) oder ohne Display und Akku (**Ultralight**).
   auf dem Handy: Training, Kraftkurve, Taktgeber, Live-Kurve, Reise und Status, gewechselt durch
   Wischen nach links und rechts. Bei der Ultralight-Variante ist das dein Display. Die
   Reise-Ansicht zeigt oben eine kleine 3D-Szene: einen Einer, dessen Ruderer im echten
-  Schlagrhythmus rudert, mit Ufern, Orten und Brücken an den Etappen (erzeugte Landschaft,
-  experimentell).
+  Schlagrhythmus rudert (experimentell). Auf dem Rhein folgt der Fluss seinem echten Verlauf aus
+  OpenStreetMap, mit echtem Gelände, Brücken und Landmarken (Burgen, Dome, Loreley, Windmühlen)
+  und einer kleinen Karte; andere Strecken zeigen eine erzeugte Landschaft. Ist die Box online,
+  zeigt sie dazu das aktuelle Wetter an deiner virtuellen Position (Wolken, Regen, Schnee, Nebel,
+  Wind auf dem Wasser). Dafür schickt die Box diese Position, nicht deine, etwa alle 15 Minuten an
+  [Open-Meteo](https://open-meteo.com); abschalten kannst du das in den Einstellungen.
 
   <p align="center"><img src="docs/phone_display.png" width="760" alt="Handy als Display: Training, Kraftkurve, Taktgeber und Reise"></p>
 
