@@ -21,13 +21,13 @@ labels: bug
 
 | | |
 |---|---|
-| Rowbox version | <!-- shown in the portal header, e.g. 2.1.1 --> |
+| Rowbox version | <!-- shown in the portal header, e.g. 2.2 --> |
 | Raspberry Pi model | <!-- e.g. Pi Zero 2 W --> |
 | Raspberry Pi OS | <!-- output of: cat /etc/os-release | grep PRETTY ; uname -r --> |
 | Power | <!-- PiSugar 3 / USB power bank / power supply --> |
 | PiSugar 3 detected? | <!-- yes / no / not used. Battery level shown on the display? --> |
 | Whisplay working? | <!-- Display shows the Rowbox screens? Sound works? Output of: aplay -l --> |
-| S4 monitor | <!-- model and firmware version if known; output of: lsusb | grep -i 04d8 --> |
+| S4 firmware | <!-- portal Status page or display Info screen, e.g. 2.10 --> |
 | Fitness app | <!-- e.g. Rowing Workout, EXR, Kinomap; app version; iPhone/Android --> |
 
 ### Logs

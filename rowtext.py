@@ -197,6 +197,8 @@ EN = {
     "Zeichnet alle Meldungen des S4 auf, auch Sensorimpulse und Zuganfang/-ende. Nur zum Auswerten gedacht, am normalen Betrieb ändert sich nichts.": "Records every message from the S4, including sensor pulses and stroke start/end. Meant for analysis only; normal operation is unchanged.",
     "Läuft gerade.": "Recording now.",
     "Anzeige": "Display",
+    "Portal": "Portal",
+    "Firmware": "Firmware",
     "Sprache": "Language",
     "nur bei Problemen": "only on problems",
     "immer Zustandsfarbe": "always show state colour",

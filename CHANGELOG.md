@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2
+- The S4's model and firmware version are read on connect and shown in the portal status, on the display's Info screen and in the bridge log (helps with bug reports)
+- Log tabs in the portal are translated (Bridge, Display, Portal, Wi-Fi); old links keep working
+- Raw S4 recordings are now named `s4-raw-…`; older `s4-roh-…` files still show up
+- Bug report template and CONTRIBUTING.md
+
 ## 2.1.1
 - First public release under GPL-3.0-or-later
 - English: "Strokes" label capitalised

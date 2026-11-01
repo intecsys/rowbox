@@ -27,7 +27,7 @@ LOGBOOK = "/var/lib/rowbridge/sessions.jsonl"
 TRACKS = "/var/lib/rowbridge/tracks"
 RAW_FLAG = "/var/lib/rowbridge/raw_on"
 RAW_DIR = "/var/lib/rowbridge/raw"
-RAW_NAME = re.compile(r"^s4-roh-[0-9_-]+\.log$")
+RAW_NAME = re.compile(r"^s4-r(aw|oh)-[0-9_-]+\.log$")   # "roh": Dateien von vor 2.2
 HOTSPOT_CON = "rowbox-hotspot"
 HOTSPOT_NET = "10.42.0."
 NO_WIFI_AFTER = 60       # Sekunden ohne WLAN, dann Hotspot
@@ -555,7 +555,8 @@ def status_page(wifi):
         cls = "ok" if ok is True else ("dim" if ok is None else "bad")
         return f'<tr><td>{k}</td><td class="r {cls}">{e(v)}</td></tr>'
     rows = (line(L("Brücke"), fresh, L("läuft") if fresh else L("aus"))
-            + line("S4", bool(s.get("s4")), L("verbunden") if s.get("s4") else L("nicht verbunden"))
+            + line("S4", bool(s.get("s4")), (L("verbunden") + (f" · {L('Firmware')} {s['s4_fw'].split(' ')[-1]}"
+                                                                 if s.get("s4_fw") else "")) if s.get("s4") else L("nicht verbunden"))
             + line("App", True if s.get("app") else None, L("verbunden") if s.get("app") else L("wartet"))
             + line(L("WLAN"), st == "connected", con if con else L("keins"))
             + line(L("Akku"), b is not None and b > 15, f"{b} %" if b is not None else L("unbekannt")))
@@ -884,13 +885,15 @@ def journey_page():
 
 
 def logs_page(unit):
-    units = {"bruecke": "rowbridge", "anzeige": "rowdisplay", "portal": "rowportal",
-             "wlan": "NetworkManager"}
-    u = units.get(unit, "rowbridge")
+    units = {"bridge": ("rowbridge", L("Brücke")), "display": ("rowdisplay", L("Anzeige")),
+             "portal": ("rowportal", L("Portal")), "wifi": ("NetworkManager", L("WLAN"))}
+    old = {"bruecke": "bridge", "anzeige": "display", "wlan": "wifi"}     # alte Links weiter gueltig
+    unit = old.get(unit, unit)
+    u = units.get(unit, units["bridge"])[0]
     out = subprocess.run(["journalctl", "-u", u, "-n", "200", "--no-pager", "-o", "short"],
                          capture_output=True, text=True, timeout=10).stdout
-    tabs = " ".join(f'<a href="/protokoll?u={k}" style="color:{"var(--ink)" if v == u else "var(--mute)"}">{k}</a>'
-                    for k, v in units.items())
+    tabs = " ".join(f'<a href="/protokoll?u={k}" style="color:{"var(--ink)" if v == u else "var(--mute)"}">{e(lab)}</a>'
+                    for k, (v, lab) in units.items())
     body = raw_card() + f'<div class="card"><h2>{tabs}</h2><pre>{e(out[-30000:])}</pre></div>'
     return page(L("Protokoll"), "/protokoll", body)
 

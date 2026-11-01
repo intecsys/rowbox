@@ -635,11 +635,14 @@ def draw_info(batt, plug, ssid, ip):
     header(d, L("Info"), batt, plug)
     lines = [(L("Webseite"), f"http://{HOST}"), (L("WLAN"), ssid or L("keins")), ("IP", ip or "-"),
              (L("Passwort"), read_json(CONF).get("password", "-"))]
-    y = 85
+    y = 78
     for k, v in lines:
         d.text((24, y), k, font=F_SMALL, fill=C_DIM)
         d.text((24, y + 20), str(v)[:20], font=F_MED, fill=C_FG)
-        y += 48
+        y += 44
+    fw = read_json(STATE).get("s4_fw")
+    if fw:
+        d.text((W // 2, 266), f"S4 · {L('Firmware')} {fw.split(' ')[-1]}", font=F_TINY, fill=C_DIM, anchor="mm")
     return img
 
 

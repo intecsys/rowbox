@@ -13,7 +13,7 @@ import rowgame
 
 PORT = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyACM0"
 NAME = "WaterRower S4"
-VERSION = "2.1.1"
+VERSION = "2.2"
 IDLE = 7                               # Sekunden ohne neuen Schlag = Pause
 STATE = "/run/rowbridge/state.json"    # Zustand fuer die Anzeige (rowdisplay)
 LOGBOOK = "/var/lib/rowbridge/sessions.jsonl"   # eine Zeile pro Einheit
@@ -54,6 +54,14 @@ def write_json(path, data):
         os.replace(tmp, path)
     except OSError:
         pass
+
+
+def parse_model(line):
+    """Antwort auf "IV?": IV + Modell + Version hoch + Version niedrig, z. B. "IV40210" -> "S4 2.10"."""
+    rest = line[2:].strip()
+    if len(rest) >= 5 and rest[1:5].isdigit():
+        return f"S{rest[0]} {int(rest[1:3])}.{rest[3:5]}"
+    return rest or None
 
 
 def write_state(data):
@@ -238,6 +246,7 @@ class S4(threading.Thread):
         self.v = {n: 0 for n, _, _ in REG.values()} | {"watts": 0}
         self.stroke_at = 0.0
         self.strokes_seen = False
+        self.fw = None                     # Modell und Firmware aus "IV?", z. B. "S4 2.10"
         self.raw, self.raw_check = None, 0.0   # offene Rohdaten-Datei
         self.analyzer = rowstroke.Analyzer()   # Kraftkurve aus den Sensorimpulsen
         self.p_at = 0.0                        # wann die letzte P-Meldung kam
@@ -267,7 +276,7 @@ class S4(threading.Thread):
                     log("Rohdaten: Speichergrenze erreicht, bitte alte Dateien im Portal loeschen")
                     os.remove(RAW_FLAG)
                     return
-                name = time.strftime("s4-roh-%Y-%m-%d_%H-%M-%S.log")
+                name = time.strftime("s4-raw-%Y-%m-%d_%H-%M-%S.log")
                 self.raw = open(os.path.join(RAW_DIR, name), "a", buffering=1)
                 self.raw.write(f"# Rowbox {VERSION} S4-Rohdaten, Spalten: Millisekunden seit Start, Meldung\n")
                 self.raw_t0 = time.monotonic()
@@ -298,6 +307,11 @@ class S4(threading.Thread):
         self.cmds.put("RESET")
 
     def parse(self, line):
+        if line.startswith("IV") and line != "IV?":
+            self.fw = parse_model(line)
+            if self.fw:
+                log(f"S4-Modell und Firmware: {self.fw}")
+            return
         if len(line) == 3 and line[0] == "P":         # Pxx: Sensorimpulse der letzten 25 ms
             try:
                 n = int(line[1:], 16)
@@ -341,6 +355,8 @@ class S4(threading.Thread):
             try:
                 with serial.Serial(self.port, 19200, timeout=0.2) as s:
                     s.write(b"USB\r\n"); time.sleep(0.3)
+                    self.fw = None
+                    s.write(b"IV?\r\n"); time.sleep(0.1)     # Modell und Firmware
                     self.ok = True
                     log(f"S4 verbunden an {self.port}")
                     while True:
@@ -574,7 +590,7 @@ def main():
                      "watts": v["watts"] if s4.active() else 0,
                      "bpm": v["bpm"] if 30 <= v["bpm"] <= 240 else 0,
                      "pace": round(50000 / v["cmps"]) if s4.active() and v["cmps"] > 0 else 0,
-                     "cal": v["cal"] // 1000, "version": VERSION,
+                     "cal": v["cal"] // 1000, "version": VERSION, "s4_fw": s4.fw,
                      "pause_left": book.pause_left(time.time()) if not s4.active() else None,
                      "session_m": max(v["dist"] - book.cur["d0"], 0) if book.cur else 0,
                      "curve": cur["curve"] if cur else None,
