@@ -48,8 +48,28 @@ function realRoute(R) {
   for (let i = 0; i < n; i++) { X.push(R.pts[2 * i]); Z.push(-R.pts[2 * i + 1]); }
   const line = polyline(X, Z, R.start || 0);
   return { width: R.width || 160, real: true, at: line.at, bridges: R.bridges || [], X, Z,
-           landmarks: R.landmarks || [], relief: relief(R.relief, R.start || 0),
+           landmarks: R.landmarks || [], relief: relief(R.relief, R.start || 0), latlon: geo(R.geo, R.start || 0),
            sides: new Map((R.stops || []).map(([km, side]) => [km, side])), attribution: R.attribution };
+}
+
+// Lage (Breite, Laenge) bei Strecke s, aus den Stuetzpunkten der Strecke; fuer den Sonnenstand.
+function geo(G, s0) {
+  if (!G || !G.ll) return null;
+  const n = G.ll.length / 2;
+  return s => { const i = Math.max(0, Math.min(n - 1, Math.round((s - s0) / G.step))); return [G.ll[2 * i], G.ll[2 * i + 1]]; };
+}
+
+// Sonnenstand (Hoehe und Richtung) fuer Ort und Zeit, Genauigkeit gut genug fuer Licht und Himmel.
+function sunAt(lat, lon, date) {
+  const rad = Math.PI / 180, d = (date.getTime() / 864e5) + 2440587.5 - 2451545.0;
+  const g = (357.529 + 0.98560028 * d) * rad, q = 280.459 + 0.98564736 * d;
+  const L = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * rad, e = (23.439 - 0.00000036 * d) * rad;
+  const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)), dec = Math.asin(Math.sin(e) * Math.sin(L));
+  const gmst = (18.697374558 + 24.06570982441908 * d) % 24, ha = (gmst * 15 + lon) * rad - ra;
+  const la = lat * rad;
+  const alt = Math.asin(Math.sin(la) * Math.sin(dec) + Math.cos(la) * Math.cos(dec) * Math.cos(ha));
+  const az = Math.atan2(-Math.sin(ha), Math.tan(dec) * Math.cos(la) - Math.sin(la) * Math.cos(ha));   // ab Nord, im Uhrzeigersinn
+  return { alt, az };
 }
 
 // Gelaendehoehe ueber dem Wasserspiegel aus dem Hoehenraster der Strecke (Meter; off > 0 rechts).
@@ -118,11 +138,12 @@ export function start(el, state) {
     if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82) || c >= 95) return "rain";
     return "";
   }
+  let skyAt = -1e9, skyLL = null;                            // wo der Himmel zuletzt berechnet wurde
   function sky() {
-    const h = new Date().getHours() + new Date().getMinutes() / 60;
-    // Tageslauf: Sonnenhoehe grob nach Uhrzeit, Farben fuer Tag, Abendrot und Nacht
-    const elev = Math.sin(Math.PI * (h - 6.5) / 13);           // >0 tagsueber
-    const day = Math.min(1, Math.max(0, elev * 3)), glow = Math.max(0, 1 - Math.abs(elev) * 4);
+    // Echter Sonnenstand am Ort auf der Strecke (ohne Kartendaten: Mitteleuropa)
+    const ll = skyLL || [50.1, 7.7];
+    const sp = sunAt(ll[0], ll[1], new Date()), elev = Math.sin(sp.alt);
+    const day = Math.min(1, Math.max(0, (elev + 0.03) * 4)), glow = Math.max(0, 1 - Math.abs(elev + 0.02) * 9);
     const top = mixC(0x0b1530, 0x3f7fd0, day), horizon = mixC(0x1a2440, 0xc9def0, day).lerp(new THREE.Color(0xf0a070), glow * 0.6);
     // Bewoelkung: Himmel grauer, Sonne schwaecher; Sicht bestimmt den Dunst
     const cloud = WX && WX.cloud != null ? WX.cloud / 100 : 0, wet = wxKind() === "rain" ? 0.25 : 0;
@@ -130,7 +151,8 @@ export function start(el, state) {
     horizon.lerp(mixC(0x22262c, 0xb9c1c9, day), Math.min(0.8, cloud * 0.6 + wet));
     skyU.top.value.copy(top);
     skyU.horizon.value.copy(horizon);
-    skyU.sunDir.value.set(-0.45, Math.max(0.03, elev * 0.8), -0.85).normalize();
+    const ca = Math.cos(Math.max(sp.alt, 0.03));            // Szene: x = Osten, -z = Norden
+    skyU.sunDir.value.set(Math.sin(sp.az) * ca, Math.max(0.03, Math.sin(sp.alt)), -Math.cos(sp.az) * ca).normalize();
     skyU.sunCol.value.copy(mixC(0xffe2b0, 0xfff6e0, day)).multiplyScalar((day > 0 || glow > 0 ? 1 : 0) * Math.max(0, 1 - cloud * 1.2));
     sun.position.copy(skyU.sunDir.value).multiplyScalar(600);
     sun.color.copy(mixC(0xffb070, 0xffffff, day));
@@ -583,24 +605,23 @@ export function start(el, state) {
 
   // Eigene, gleichmaessige Schlaguhr: laeuft mit der Schlagdauer weiter und wird bei jedem
   // erkannten Zuganfang sanft nachgezogen (wie der Taktgeber), damit nichts springt.
-  const clock = { phase: 0, period: 2.8, lastCatch: 0, warm: 0, idle: 1, curve: null, cum: null };
+  // Schlaguhr: Jeder Durchzug beginnt nur mit einem echten Zuganfang von der Box. Ist das Vorrollen
+  // vorbei und kommt kein neuer Zug, wartet der Ruderer am Zuganfang; nach einer Pause geht er in Ruhe.
+  const clock = { phase: 1, period: 2.8, lastCatch: 0, idle: 1, curve: null, cum: null };
   function stroke(S, W, dt) {
     const now = performance.now() / 1000;
     const target = W.period || (S.drive && S.recover ? S.drive + S.recover : clock.period);
     clock.period += (Math.min(6, Math.max(1.2, target)) - clock.period) * Math.min(1, dt * 0.8);
-    clock.phase = ((clock.phase + dt / clock.period) % 1 + 1) % 1;
+    clock.phase = Math.min(1, clock.phase + dt / clock.period);      // am Ende festhalten, nicht umlaufen
     const age = Date.now() / 1000 - (W.ts || 0);
     for (const ago of W.catch_ago || []) {
       const c = now - ago - age;                       // Zeitpunkt des Zuganfangs in unserer Uhr
-      if (c <= clock.lastCatch + 0.6 * clock.period) continue;
-      const anchor = ((now - c) / clock.period) % 1;
-      if (clock.warm < 1 || c - clock.lastCatch > 8) clock.phase = anchor;
-      else clock.phase = (clock.phase - 0.35 * (((clock.phase - anchor + 0.5) % 1 + 1) % 1 - 0.5) + 1) % 1;
-      clock.warm++;
+      if (c <= clock.lastCatch + 0.5 * clock.period) continue;
+      clock.phase = Math.min(0.5, Math.max(0, (now - c) / clock.period));   // neuer Durchzug ab jetzt
       clock.lastCatch = c;
     }
-    // Ruhen: ohne Ruderei langsam in die Endzug-Haltung gleiten
-    const rowing = S.active && clock.lastCatch && now - clock.lastCatch < clock.period * 1.8;
+    // Ruhen: kurz nach dem letzten erkannten Zug in die Endzug-Haltung gleiten
+    const rowing = clock.lastCatch && now - clock.lastCatch < Math.max(3, clock.period * 1.25);
     clock.idle += ((rowing ? 0 : 1) - clock.idle) * Math.min(1, dt * 1.5);
     // Kraftkurve des letzten Zugs: kumulierte Kraft = wie weit der Griff im Zug schon ist
     if (S.curve && S.curve !== clock.curve) {
@@ -649,7 +670,7 @@ export function start(el, state) {
       const id = routeId;
       fetch(`/static/routes/${id}.json`).then(r => r.ok ? r.json() : null).then(R => {
         if (id !== routeId || !R || !R.pts) return;
-        path = realRoute(R); WIDTH = path.width; stopsKey = "";
+        path = realRoute(R); WIDTH = path.width; stopsKey = ""; skyAt = -1e9;
       }).catch(() => {});
       path = wiggle(); WIDTH = path.width; stopsKey = "";
     }
@@ -700,6 +721,7 @@ export function start(el, state) {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }
+    if (Math.abs(pos - skyAt) > 20000) { skyAt = pos; skyLL = path.latlon ? path.latlon(pos) : null; sky(); }
     const wk = JSON.stringify(G.weather || null);
     if (wk !== wxKey) {
       wxKey = wk; WX = G.weather || null; sky();

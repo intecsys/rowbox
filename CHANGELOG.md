@@ -12,6 +12,9 @@
 - Phone display, 3D view: real terrain along the Rhine (AWS Terrain Tiles, ~30 m grid), so the Middle Rhine valley rises 150–200 m on both banks; 242 landmarks from OpenStreetMap as simple models with name signs (castles, ruins, cathedrals, churches, towers, windmills, rocks such as the Loreley; Pfalzgrafenstein sits in the river)
 - Phone display, 3D view: new look: sky with colour gradient and sun by time of day, haze toward the horizon, water that reflects the sky with moving ripples, wake behind the boat, mixed forest (broadleaf and conifers in groups), vineyard and rock colours on steep slopes, fields in the flat
 - Phone display, 3D view: real weather at your virtual position on the route (Open-Meteo, fetched by the box about every 15 minutes when online): cloudy sky, rain and snow, fog by visibility, wind on the water, temperature and weather in a small label; switch in Settings → Journey; nothing changes offline
+- Phone display, 3D view: the rower only starts a new drive when the box detects a real catch; after the recovery he waits at the catch and goes to rest after a pause (before, the animation kept rowing a few strokes)
+- Phone display, 3D view: real sun position for the place on the route and the current time (night, dawn, dusk, sun direction)
+- Phone display: the journey list shortens itself on small screens instead of running into the destination
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2

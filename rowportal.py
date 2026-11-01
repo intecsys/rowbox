@@ -716,7 +716,7 @@ padding:24px;font-size:clamp(15px,2.2vh,20px);line-height:1.4}
 .bar3 b{display:block;font-size:clamp(28px,min(10vw,6vh),58px);font-weight:800}
 .bar3 span{color:var(--dim);font-size:clamp(12px,1.9vh,17px)}
 .foot{color:var(--dim);font-size:clamp(14px,2.2vh,19px);padding:12px 0 4px}
-.route{position:relative;z-index:0;list-style:none;margin:0;padding:0 0 0 6px;height:100%;display:flex;flex-direction:column;justify-content:space-evenly;text-align:left}
+.route{position:relative;z-index:0;list-style:none;margin:0;padding:0 0 0 6px;height:100%;display:flex;flex-direction:column;justify-content:space-evenly;text-align:left;overflow:hidden}
 .route li{position:relative;padding-left:30px;display:flex;justify-content:space-between;align-items:baseline;
 font-size:clamp(17px,2.8vh,26px);font-weight:700}
 .route li::before{content:"";position:absolute;left:0;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--line)}
@@ -839,12 +839,15 @@ async function slow(){
   let li=past.slice(-1).map(s=>'<li class="past">'+esc(s[1])+'<span>'+kmf(g.km-s[0])+' km</span></li>');
   if(!g.done)li.push('<li class="here">'+esc(T.here)+'<span></span></li>');
   li=li.concat(ahead.slice(0,R3?3:5).map(s=>'<li>'+esc(s[1])+'<span>'+kmf(s[0]-g.km)+' km</span></li>'));
-  $('jr-route').innerHTML=li.join('');
+  $('jr-route').innerHTML=li.join('');fitRoute();
   $('jr-bar').style.width=Math.min(100,g.km/g.total*100).toFixed(1)+'%';
   $('jr-prog').textContent=kmf(g.km)+' / '+kmf(g.total)+' km';
   G=g;river()
  }catch(e){}
 }
+// Liste so kuerzen, dass sie nicht ueber das Ziel laeuft (kleine Bildschirme, Browserleisten)
+function fitRoute(){const ul=$('jr-route');if(!ul)return;
+ while(ul.children.length>2&&ul.scrollHeight>ul.clientHeight+2)ul.lastElementChild.remove()}
 // Fluss als geschwungene Linie, Orte als Bojen, das Boot bei "Du bist hier"
 let G=null;
 function river(){
