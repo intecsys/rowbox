@@ -168,40 +168,165 @@ export function start(el, state) {
   }
 
   // ---------- Boot und Ruderer ----------
-  const white = new THREE.MeshLambertMaterial({ color: 0xf2f2ee });
-  const orange = new THREE.MeshLambertMaterial({ color: 0xff5a1f });
-  const dark = new THREE.MeshLambertMaterial({ color: 0x23272e });
+  // Einer im Massstab: 8 m lang, Rumpf mit spitzem Bug und Heck, Abdeckungen aus Carbon, Fluegelausleger.
+  // Der Ruderer sitzt mit Blick zum Heck (+z), die Fahrt geht zum Bug (-z). Gelenke werden jedes Bild neu
+  // gesetzt: Fuesse fest am Stemmbrett, Knie und Ellbogen per Zwei-Knochen-Rechnung, Haende an den Griffen.
+  const mat = c => new THREE.MeshLambertMaterial({ color: c });
+  const white = mat(0xf4f4f0), orange = mat(0xff5a1f), dark = mat(0x23272e), carbon = mat(0x2b2f36);
+  const skin = mat(0xe2b08f), shorts = mat(0x1d2230), metal = mat(0xb9bec6), grip = mat(0x3a3d42);
   const boat = new THREE.Group();
-  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 8), white);
-  hull.scale.set(0.24, 0.13, 4.1);
-  boat.add(hull);
-  const rig = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.04, 0.08), dark);
-  rig.position.set(0, 0.22, 0.1);
-  boat.add(rig);
-  const seat = new THREE.Group();
-  boat.add(seat);
-  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.7), dark);
-  legs.position.set(0, 0.18, 0.35);
-  const torso = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.62, 0.22), orange);
-  body.position.y = 0.31;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), new THREE.MeshLambertMaterial({ color: 0xe8b89a }));
-  head.position.y = 0.74;
-  torso.add(body, head);
-  torso.position.y = 0.2;
-  seat.add(legs, torso);
+  const BOW = -4.6, STERN = 3.4, HALF = 0.17;
+  const width = t => HALF * Math.pow(Math.sin(Math.PI * t), 0.55);           // t = 0 Bug ... 1 Heck
+  function hullGeo(top) {
+    const n = 48, m = 10, pos = [], idx = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, z = BOW + (STERN - BOW) * t, w = width(t), dep = 0.16 * Math.pow(Math.sin(Math.PI * t), 0.7);
+      for (let j = 0; j <= m; j++) {
+        const a = Math.PI * j / m;
+        if (top) pos.push(w * Math.cos(a), 0.02 + 0.03 * Math.sin(a) * w / HALF, z);    // leicht gewoelbtes Deck
+        else pos.push(w * Math.cos(a), -dep * Math.sin(a), z);
+      }
+    }
+    for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
+      const a = i * (m + 1) + j, b = a + m + 1;
+      if (top) idx.push(a, a + 1, b, b, a + 1, b + 1); else idx.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    return g;
+  }
+  boat.add(new THREE.Mesh(hullGeo(false), white));
+  const deck = new THREE.Mesh(hullGeo(true), mat(0xe9ebee));
+  boat.add(deck);
+  // Cockpit: helle Flaeche um den Rollsitz, Waschbord vorne
+  const cockpit = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 1.7), carbon);
+  cockpit.position.set(0, 0.055, 0.25);
+  const breakwater = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.02), white);
+  breakwater.position.set(0, 0.08, -0.65);
+  breakwater.rotation.y = 0;
+  const bowball = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), white);
+  bowball.position.set(0, 0.03, BOW);
+  const rails = [-0.09, 0.09].map(x => { const r = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.8), metal); r.position.set(x, 0.08, 0.05); return r; });
+  const footboard = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 0.02), dark);
+  footboard.position.set(0, 0.13, 0.83);
+  footboard.rotation.x = -0.7;
+  const stripe = new THREE.Mesh(new THREE.BufferGeometry(), orange);
+  {
+    const n = 48, pos = [], idx = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, z = BOW + (STERN - BOW) * t, w = width(t) + 0.002;
+      pos.push(-w, 0.0, z, -w, -0.025, z, w, 0.0, z, w, -0.025, z);
+      if (i < n) { const a = i * 4; idx.push(a, a + 4, a + 1, a + 1, a + 4, a + 5, a + 2, a + 3, a + 6, a + 3, a + 7, a + 6); }
+    }
+    stripe.geometry.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    stripe.geometry.setIndex(idx);
+    stripe.material = new THREE.MeshLambertMaterial({ color: 0xff5a1f, side: THREE.DoubleSide });
+  }
+  boat.add(cockpit, breakwater, bowball, footboard, stripe, ...rails);
+  // Fluegelausleger: Bogen ueber dem Cockpit mit Doellen links und rechts
+  const PIN = { x: 0.8, y: 0.3, z: 0.12 };
+  const stick = (a, b, r, m) => {
+    const v = new THREE.Vector3().subVectors(b, a), o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, 6), m);
+    o.position.copy(a).addScaledVector(v, 0.5);
+    o.scale.y = v.length();
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.normalize());
+    return o;
+  };
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  boat.add(stick(V(-PIN.x, PIN.y, PIN.z), V(PIN.x, PIN.y, PIN.z), 0.016, carbon));
+  for (const sd of [-1, 1]) {
+    boat.add(stick(V(sd * 0.13, 0.06, PIN.z - 0.35), V(sd * PIN.x, PIN.y, PIN.z), 0.012, carbon));
+    boat.add(stick(V(sd * 0.13, 0.06, PIN.z + 0.3), V(sd * PIN.x, PIN.y, PIN.z), 0.012, carbon));
+    const gate = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 0.06), dark);
+    gate.position.set(sd * PIN.x, PIN.y + 0.04, PIN.z);
+    boat.add(gate);
+  }
+  // Skulls: Griff innen, Schaft aus Carbon, Manschette an der Dolle, Hackebeil-Blatt
+  const bladeShape = new THREE.Shape();
+  bladeShape.moveTo(0, -0.04); bladeShape.bezierCurveTo(0.12, -0.13, 0.36, -0.14, 0.46, -0.07);
+  bladeShape.lineTo(0.47, 0.08); bladeShape.bezierCurveTo(0.33, 0.13, 0.12, 0.1, 0, 0.03); bladeShape.closePath();
+  const bladeGeo = new THREE.ShapeGeometry(bladeShape, 8);
+  const bladeMat = new THREE.MeshLambertMaterial({ color: 0xff5a1f, side: THREE.DoubleSide });
+  const INBOARD = 0.88, OUT = 2.0;
   const oars = [-1, 1].map(side => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.8, 0.26, 0.1);
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 2.9, 6), white);
+    pivot.position.set(side * PIN.x, PIN.y + 0.03, PIN.z);
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.019, INBOARD + OUT, 8), carbon);
     shaft.rotation.z = Math.PI / 2;
-    shaft.position.x = side * 1.15;
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.03), orange);
-    blade.position.x = side * 2.45;
-    pivot.add(shaft, blade);
+    shaft.position.x = side * (OUT - INBOARD) / 2;
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.13, 8), grip);
+    handle.rotation.z = Math.PI / 2;
+    handle.position.x = -side * (INBOARD - 0.06);
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 8), white);
+    collar.rotation.z = Math.PI / 2;
+    collar.position.x = side * 0.03;
+    const blade = new THREE.Group(), leaf = new THREE.Mesh(bladeGeo, bladeMat);
+    leaf.scale.set(side, 1, 1);                       // Blatt zeigt nach aussen
+    blade.add(leaf);
+    blade.position.x = side * (OUT - 0.02);
+    pivot.add(shaft, handle, collar, blade);
     boat.add(pivot);
-    return { pivot, blade, side };
+    return { pivot, blade, side, hand: new THREE.Vector3() };
   });
+  // Ruderer aus Gliedern; limb() setzt einen Zylinder zwischen zwei Punkte
+  const crew = new THREE.Group();
+  boat.add(crew);
+  const part = (r0, r1, m) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, 1, 10), m); crew.add(o); return o; };
+  const ball = (r, m) => { const o = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), m); crew.add(o); return o; };
+  const UP = new THREE.Vector3(0, 1, 0), tmp = new THREE.Vector3();
+  function limb(o, a, b) {
+    tmp.subVectors(b, a);
+    const L = tmp.length() || 1e-3;
+    o.position.copy(a).addScaledVector(tmp, 0.5);
+    o.scale.set(1, L, 1);
+    o.quaternion.setFromUnitVectors(UP, tmp.divideScalar(L));
+  }
+  // Zwei Knochen: Gelenk zwischen a und Ziel t, in Richtung hint gebeugt
+  function joint(a, t, l1, l2, hint) {
+    const d = Math.min(l1 + l2 - 1e-3, Math.max(1e-3, a.distanceTo(t)));
+    const dir = new THREE.Vector3().subVectors(t, a).normalize();
+    const along = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - along * along));
+    const perp = hint.clone().addScaledVector(dir, -hint.dot(dir)).normalize();
+    return a.clone().addScaledVector(dir, along).addScaledVector(perp, h);
+  }
+  const body = {
+    pelvis: ball(0.13, shorts), torso: part(0.15, 0.18, orange), chest: ball(0.17, orange), neck: part(0.05, 0.05, skin),
+    head: ball(0.11, skin), cap: ball(0.112, white),
+    thigh: [part(0.075, 0.06, shorts), part(0.075, 0.06, shorts)], shin: [part(0.055, 0.045, skin), part(0.055, 0.045, skin)],
+    foot: [part(0.045, 0.04, white), part(0.045, 0.04, white)], knee: [ball(0.06, skin), ball(0.06, skin)],
+    upper: [part(0.05, 0.042, orange), part(0.05, 0.042, orange)], fore: [part(0.04, 0.032, skin), part(0.04, 0.032, skin)],
+    elbow: [ball(0.045, skin), ball(0.045, skin)], hand: [ball(0.04, skin), ball(0.04, skin)],
+  };
+  body.cap.scale.set(1, 0.6, 1);
+  const seatPad = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.04, 0.26), dark);
+  boat.add(seatPad);
+  function poseCrew(seatZ, lean) {
+    const hip = V(0, 0.27, seatZ);
+    seatPad.position.set(0, 0.2, seatZ);
+    const sh = hip.clone().add(V(0, 0.55 * Math.cos(lean), 0.55 * Math.sin(lean)));   // Schultern
+    body.pelvis.position.copy(hip);
+    limb(body.torso, hip, sh);
+    body.chest.position.copy(hip).lerp(sh, 0.72);
+    body.chest.scale.set(1.15, 1, 0.75);
+    const nk = sh.clone().add(V(0, 0.1 * Math.cos(lean * 0.6), 0.1 * Math.sin(lean * 0.6)));
+    limb(body.neck, sh, nk);
+    body.head.position.copy(nk).add(V(0, 0.1, 0.02));
+    body.cap.position.copy(body.head.position).add(V(0, 0.05, -0.01));
+    for (const i of [0, 1]) {
+      const sd = i ? 1 : -1, hp = hip.clone().add(V(sd * 0.1, 0, 0));
+      const heel = V(sd * 0.09, 0.12, 0.74), toe = V(sd * 0.09, 0.28, 0.86);
+      const knee = joint(hp, heel, 0.5, 0.48, V(sd * 0.25, 1, 0));
+      limb(body.thigh[i], hp, knee); limb(body.shin[i], knee, heel); limb(body.foot[i], heel, toe);
+      body.knee[i].position.copy(knee);
+      const shoulder = sh.clone().add(V(sd * 0.2, -0.04, 0));
+      const hand = oars[i].hand;
+      const elbow = joint(shoulder, hand, 0.31, 0.3, V(sd, -0.6, -0.3));
+      limb(body.upper[i], shoulder, elbow); limb(body.fore[i], elbow, hand);
+      body.elbow[i].position.copy(elbow); body.hand[i].position.copy(hand);
+    }
+  }
   scene.add(boat);
   // Regen und Schnee: Teilchen in einem Kasten um die Kamera
   const fall = (() => {
@@ -700,20 +825,21 @@ export function start(el, state) {
     pose.torso += (0.45 - swing * 0.85 - pose.torso) * k;
     pose.oar += (0.75 - e * 1.45 - pose.oar) * k;
     pose.lift += ((inDrive && clock.idle < 0.5 ? 1 : 0) - pose.lift) * Math.min(1, dt * 14);
-    seat.position.z = pose.seat;
-    torso.rotation.x = pose.torso;
     for (const o of oars) {
       o.pivot.rotation.y = o.side * pose.oar;
       o.pivot.rotation.z = o.side * (0.1 - 0.16 * pose.lift);
-      o.blade.rotation.x = (1 - pose.lift) * Math.PI / 2.4;
+      o.blade.rotation.x = Math.PI / 2 - (1 - pose.lift) * Math.PI / 2.2;   // im Zug senkrecht, beim Vorrollen flach
+      o.pivot.updateMatrix();
+      o.hand.set(-o.side * (INBOARD - 0.07), 0, 0).applyMatrix4(o.pivot.matrix);
     }
+    poseCrew(pose.seat * 0.85, pose.torso);
 
     // Kamera hinter dem Boot; Blickrichtung ueber ein laengeres Stueck gemittelt, damit sie ruhig bleibt
     const a = path.at(pos - 15), b = path.at(pos + 35), ab = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
     cam.fx += ((b[0] - a[0]) / ab - cam.fx) * Math.min(1, dt * 2);
     cam.fz += ((b[1] - a[1]) / ab - cam.fz) * Math.min(1, dt * 2);
     const n = Math.hypot(cam.fx, cam.fz) || 1, fx = cam.fx / n, fz = cam.fz / n;
-    camera.position.set(x - fx * 11 - fz * 0.25, 3.6, z - fz * 11 + fx * 0.25);
+    camera.position.set(x - fx * 9.5 - fz * 0.25, 3.2, z - fz * 9.5 + fx * 0.25);
     camera.lookAt(x + fx * 40, 0.8, z + fz * 40);
     const w = el.clientWidth, h = el.clientHeight;
     if (renderer.domElement.width !== Math.round(w * renderer.getPixelRatio()) || camera.aspect !== w / h) {

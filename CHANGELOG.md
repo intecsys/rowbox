@@ -16,6 +16,7 @@
 - Phone display, 3D view: real sun position for the place on the route and the current time (night, dawn, dusk, sun direction)
 - Phone display: the journey list shortens itself on small screens instead of running into the destination
 - Portal: status dots in the same colours as on the display (green ok, red problem, blue waiting), also in the header; S4 firmware on its own line so the status rows don't crowd on phones
+- Phone display, 3D view: new single scull and rower: 8 m hull with pointed bow and stern, deck, cockpit, orange stripe, wing rigger, oars with grip, collar and hatchet blade; the rower has legs, arms and hands on the handles (two-bone joints), feet on the footstretcher, knees rise on the slide, layback at the finish
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2
