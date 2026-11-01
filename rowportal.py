@@ -1523,7 +1523,7 @@ def settings_page(conf, msg=""):
 <p class="dim">{L("Welche Elemente die Reise-Ansicht zeigt.")}</p>
 <div class="checks">{journey_checks(conf)}</div></div>
 <div class="card"><h2>{L("Farben im 3D-Boot")}</h2>
-<div class="row">{color_field("boat_hull", L("Skiff"), conf)}{color_field("boat_blade", L("Ruderblätter"), conf)}{color_field("boat_shirt", L("Trikot"), conf)}</div></div>
+<div class="row">{color_field("boat_hull", L("Boot"), conf)}{color_field("boat_blade", L("Blätter"), conf)}{color_field("boat_shirt", L("Einteiler"), conf)}</div></div>
 """ + (f"""<div class="card"><h2>{L("Ansichten auf dem Display")}</h2>
 <p class="dim">{L("Welche Ansichten die Display-Taste durchblättert. Die Automatik ist immer dabei, Info auch (dort steht das Passwort).")}</p>
 {view_checks(conf)}</div>
