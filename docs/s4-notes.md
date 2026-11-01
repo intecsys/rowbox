@@ -12,24 +12,26 @@ Items marked *unconfirmed* are educated guesses. Corrections and photos are welc
 - `USB` starts the session. `IR{S,D,T}xxx` reads a memory location, answered with `ID…`.
 - Unsolicited messages: `Pxx` flywheel pulses in the last 25 ms (hex, 7–13 while rowing),
   `SS`/`SE` stroke start/end, `PING` while idle.
-- `IV?` returns `IV` + model + version high + version low, e.g. `IV40149` = S4, firmware 1.49.
+- `IV?` returns `IV` + model + version high + version low, e.g. `IV40210` = S4, firmware 2.10.
 - The protocol itself is documented by WaterRower ("Water Rower S4 S5 USB Protocol Iss 1 04").
 
 ## Firmware
 
-- WaterRower's firmware page (archived 2011 and 2016, unchanged) lists **1.49** as the current S4
-  firmware.
-- Updates were done by WaterRower only: the circuit board is sent in and reprogrammed. There are no
-  public release notes and no update tool.
-- Reading the version on the S4: up to 1.48 it is shown at power-on; from 1.49 go to
-  **Advanced function 9** and press **OK**. Rowbox shows it in the portal (Status) and on the
-  display (Info).
-- Source: [S4 and Series III Firmware Upgrades (archived)](https://web.archive.org/web/20160122212732/http://www.waterrower.biz/en/upgrades_firmware.htm)
+- USB monitors ("S4 version 2", Mini-USB) run firmware **2.01**, **2.03** or the current **2.1**.
+  WaterRower upgrades 2.01/2.03 on request via its service contact form.
+  ([WaterRower service](https://www.waterrowerservice.com/?p=5014))
+- Older 1.x firmware: WaterRower's archived firmware page (2011 and 2016, unchanged) lists 1.49 as
+  current at the time; back then updates meant sending in the circuit board. This most likely refers
+  to the earlier RS-232 monitors. ([archived page](https://web.archive.org/web/20160122212732/http://www.waterrower.biz/en/upgrades_firmware.htm))
+- There are no public release notes and no update tool.
+- Reading the version on the S4: switch on, press **advanced** nine times, then **OK**; the version
+  appears bottom right. Rowbox shows it in the portal (Status) and on the display (Info).
 
 ## Hardware
 
-- Generations: early "S4 version 1" monitors have an RS232 serial port instead of USB. WaterRower
-  offered a board upgrade to USB (needed for the ComModule). Rowbox needs the USB version.
+- Generations: "S4 version 1" has an RS-232 serial port, "S4 version 2" a Mini-USB port on the
+  back. WaterRower offered a board upgrade to USB (needed for the ComModule). Rowbox needs the USB
+  version.
 - Service parts (from WaterRower's monitor drawings):
   - **WRP-C004 S4 Monitor Board Assy**: front panel with LCD, keypad and circuit board as one unit
   - **WRP-C500 Housing Assy**: back shell with battery compartment and the tube the sensor cable runs through

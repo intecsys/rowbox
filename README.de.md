@@ -141,8 +141,48 @@ Noch nicht an einer echten Box getestet, Rückmeldungen willkommen.
 3. Rudern. Das Display springt von selbst auf die Trainingsansicht.
 
 Getestet mit *Rowing Workout* auf iPhone und Apple Watch: Die Einheit erscheint in Apple Fitness
-als "Rudern indoor", mit der Distanz vom S4 und dem Puls von der Uhr. Andere FTMS-Apps sollten
-ebenfalls funktionieren, sind aber nicht getestet.
+als "Rudern indoor", mit der Distanz vom S4 und dem Puls von der Uhr. Weitere Apps:
+siehe [Kompatibilität](#kompatibilität).
+
+## Kompatibilität
+
+### Apps
+
+Die Rowbox meldet sich als normales Bluetooth-FTMS-Rudergerät namens **"WaterRower S4"**. „Sollte
+gehen“ heißt: Der Hersteller nennt FTMS-Rudergeräte allgemein als unterstützt, mit der Rowbox
+getestet ist es noch nicht. Rückmeldungen sind willkommen.
+
+| App | Plattform | Mit Rowbox | Hinweise |
+|---|---|---|---|
+| [Rowing Workout](https://apps.apple.com/app/id6470894043) | iPhone, Apple Watch | **getestet** | Kostenlos (Pro optional); speichert in Apple Health/Fitness |
+| [Kinomap](https://support.kinomap.com/hc/en-us/articles/360015335632-What-is-the-FTMS-protocol) | iOS, Android | sollte gehen | Abo; unterstützt FTMS-Geräte allgemein |
+| [EXR](https://exrgame.com/support/compatible-machines) | iOS | sollte gehen | Abo; „alle FTMS-Rudergeräte kompatibel“, Genauigkeit ohne Gewähr |
+| [Holofit](https://www.holodia.com/?p=5719) | Meta Quest | sollte gehen | VR, Abo; FTMS-Rudergeräte verbinden sich direkt |
+| [Peloton App](https://www.pelobuddy.com/third-party-rowers-ftms/) | iOS | sollte gehen | App+ / All-Access; laut Community-Berichten |
+| [Track My Indoor Workout](https://trackmyindoorworkout.github.io) | Android | sollte gehen | Kostenlos, Open Source; Upload zu Strava/TrainingPeaks, eigener Pulsgurt |
+| [FTMS Rowing](https://abscreations.gumroad.com/l/FTMSRowing) | Garmin (Connect IQ) | sollte gehen | Datenfeld für „Rudern Indoor“; nach 10 Minuten kostenpflichtig |
+| ArduRower-IQ | Garmin (Connect IQ) | unklar | Kostenlos; soll mit FTMS-Rudergeräten laufen |
+| MyHomeFit, WaterRower Connect, Amazfit-Uhren | verschieden | unklar | Noch keine klare Aussage zu allgemeinen FTMS-Rudergeräten |
+
+Nicht kompatibel: ErgData, Aviron, Ergatta, Hydrow (nur Concept2 oder eigene Hardware), Zwift
+(kein Rudern), Apple GymKit (nur zertifizierte Studiogeräte), Strava und Garmin-Uhren direkt
+(keine Bluetooth-Rudergeräte; Garmin koppelt Rudergeräte nur über ANT+). Für Strava und Garmin
+Connect den FIT-Export nutzen oder eine App, die hochlädt.
+
+### Rudergeräte
+
+| Monitor | Mit Rowbox | Hinweise |
+|---|---|---|
+| S4 mit Mini-USB-Anschluss („S4 version 2“) | **ja** | Serienmäßig bei Original/Natural/Oak/Club/Shadow/M1/S1 und anderen; auch als Nachrüstung für Hybrid/Pure |
+| S4 mit RS-232-Anschluss („S4 version 1“) | unklar | Seriell statt USB; vielleicht mit USB-Seriell-Adapter, ungetestet |
+| S4 BLE (Bluetooth eingebaut) | unklar | Verbindet sich schon selbst mit Apps; unklar, ob es noch den USB-Datenanschluss hat |
+| S4 + ComModule | entweder/oder | Das ComModule nutzt denselben USB-Anschluss; nur eins von beiden |
+| A1 / A1 BLE, Performance Ergometer | nein / unklar | Anderer Monitor, nicht das S4-Protokoll |
+| Series I–III, S3 | nein | Außer nach Umrüstung auf S4 |
+
+Welches S4 hast du? Einschalten, neunmal **advanced** drücken, dann **OK**: Unten rechts steht die
+Firmware (USB-Monitore: 2.01, 2.03 oder 2.1). Der Mini-USB-Anschluss sitzt hinten am S4. Ist die
+Rowbox verbunden, zeigt das S4 „PC“. Mehr dazu: [docs/s4-notes.md](docs/s4-notes.md) (Englisch).
 
 ## Testen ohne Rudergerät
 
@@ -166,9 +206,10 @@ Der Simulator rudert 60 Sekunden, pausiert 20 und beginnt von vorn. Mit `Ctrl+C`
 ## S4-Firmware
 
 Die Rowbox liest beim Verbinden die Firmware-Version des S4 aus und zeigt sie im Portal (Status) und
-auf dem Display (Info). Am S4 selbst: Bis Version 1.48 erscheint sie beim Einschalten, ab 1.49 unter
-**Advanced Function 9**, dann **OK**. Updates macht nur WaterRower (die Platine wird eingeschickt);
-öffentliche Release Notes gibt es nicht. Bitte die Version bei Fehlermeldungen angeben.
+auf dem Display (Info). Am S4 selbst: einschalten, neunmal **advanced** drücken, dann **OK**; die
+Version steht unten rechts. S4 mit USB laufen mit 2.01, 2.03 oder der aktuellen 2.1; ältere
+aktualisiert WaterRower auf Anfrage. Öffentliche Release Notes gibt es nicht. Bitte die Version bei
+Fehlermeldungen angeben.
 
 ## Bekannte Probleme
 - **"Killed" bei der Installation:** Der Zero hat nur 512 MB Arbeitsspeicher, apt läuft manchmal

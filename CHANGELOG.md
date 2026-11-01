@@ -3,6 +3,7 @@
 ## Unreleased
 - Minimal build: `setup.sh --no-display` (no Whisplay) and `--no-pisugar` (power bank); without display, setup prints the portal password and the portal hides display settings (experimental)
 - Wi-Fi messages in the portal no longer refer to the display
+- README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2
 - The S4's model and firmware version are read on connect and shown in the portal status, on the display's Info screen and in the bridge log (helps with bug reports)

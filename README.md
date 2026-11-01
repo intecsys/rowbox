@@ -138,8 +138,47 @@ Not yet tested on a real box, feedback welcome.
 3. Row. The display switches to the training screen by itself.
 
 Tested with *Rowing Workout* on iPhone and Apple Watch: the session appears in Apple Fitness
-as "Indoor Rowing" with distance from the S4 and heart rate from the watch. Other FTMS apps
-should work too but have not been tested.
+as "Indoor Rowing" with distance from the S4 and heart rate from the watch. More apps: see [Compatibility](#compatibility).
+
+## Compatibility
+
+### Apps
+
+Rowbox shows up as a standard Bluetooth FTMS rower named **"WaterRower S4"**. "Should work" means
+the vendor says it supports FTMS rowers in general; it has not been tested with Rowbox yet.
+Reports are welcome.
+
+| App | Platform | With Rowbox | Notes |
+|---|---|---|---|
+| [Rowing Workout](https://apps.apple.com/app/id6470894043) | iPhone, Apple Watch | **tested** | Free (Pro optional); saves to Apple Health/Fitness |
+| [Kinomap](https://support.kinomap.com/hc/en-us/articles/360015335632-What-is-the-FTMS-protocol) | iOS, Android | should work | Subscription; supports FTMS equipment in general |
+| [EXR](https://exrgame.com/support/compatible-machines) | iOS | should work | Subscription; "all FTMS rowers are compatible", accuracy not guaranteed |
+| [Holofit](https://www.holodia.com/?p=5719) | Meta Quest | should work | VR, subscription; FTMS rowers connect directly |
+| [Peloton App](https://www.pelobuddy.com/third-party-rowers-ftms/) | iOS | should work | App+ / All-Access; per community reports |
+| [Track My Indoor Workout](https://trackmyindoorworkout.github.io) | Android | should work | Free, open source; Strava/TrainingPeaks upload, own HR strap |
+| [FTMS Rowing](https://abscreations.gumroad.com/l/FTMSRowing) | Garmin (Connect IQ) | should work | Data field for "Row Indoor"; paid after 10 min |
+| ArduRower-IQ | Garmin (Connect IQ) | unclear | Free; reported to work with FTMS rowers |
+| MyHomeFit, WaterRower Connect, Amazfit watches | various | unclear | No clear statement for generic FTMS rowers yet |
+
+Not compatible: ErgData, Aviron, Ergatta, Hydrow (Concept2 or own hardware only), Zwift (no
+rowing), Apple GymKit (certified gym equipment only), Strava and Garmin watches directly (no
+Bluetooth rowers; Garmin pairs rowers only via ANT+). For Strava and Garmin Connect use the FIT
+export or an app that uploads.
+
+### Rowing machines
+
+| Monitor | With Rowbox | Notes |
+|---|---|---|
+| S4 with Mini-USB port ("S4 version 2") | **yes** | Standard on Original/Natural/Oak/Club/Shadow/M1/S1 and others; also as retrofit on Hybrid/Pure |
+| S4 with RS-232 port ("S4 version 1") | unclear | Serial instead of USB; may work with a USB-serial adapter, untested |
+| S4 BLE (built-in Bluetooth) | unclear | Already connects to apps itself; unknown whether it still has the USB data port |
+| S4 + ComModule | either/or | The ComModule uses the same USB port; use one or the other |
+| A1 / A1 BLE, Performance Ergometer | no / unclear | Different monitor, not the S4 protocol |
+| Series I–III, S3 | no | Unless upgraded to an S4 |
+
+Which S4 do you have? Switch it on, press **advanced** nine times, then **OK**: the firmware is
+shown bottom right (USB monitors: 2.01, 2.03 or 2.1). The Mini-USB port sits on the back of the
+S4. When Rowbox is connected, the S4 shows "PC". Details: [docs/s4-notes.md](docs/s4-notes.md).
 
 ## Testing without the rower
 
@@ -163,9 +202,10 @@ The simulator rows for 60 s, pauses 20 s and repeats. `Ctrl+C`, `kill %1` and
 ## S4 firmware
 
 Rowbox reads the S4's firmware version when it connects and shows it in the portal (Status) and
-on the display (Info). On the S4 itself: versions up to 1.48 show it at power-on; from 1.49 go to
-**Advanced function 9** and press **OK**. Firmware updates are only done by WaterRower (the circuit
-board is sent in); there are no public release notes. Please include the version in bug reports.
+on the display (Info). On the S4 itself: switch it on, press **advanced** nine times, then **OK**;
+the version appears bottom right. USB S4 monitors run 2.01, 2.03 or the current 2.1; WaterRower
+updates older ones on request. There are no public release notes. Please include the version in
+bug reports.
 
 ## Known issues
 - **"Killed" during installation:** the Zero has only 512 MB RAM and apt sometimes runs out.
