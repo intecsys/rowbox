@@ -721,8 +721,31 @@ font-size:clamp(17px,2.8vh,26px);font-weight:700}
 .route li span{color:var(--dim);font-weight:400;font-size:.8em}
 .route li.past{color:var(--dim)}.route li.past::before{background:var(--sig)}
 .route li.here{color:var(--sig)}.route li.here::before{background:var(--fg);box-shadow:0 0 0 4px var(--sig)}
-.st.full{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;margin:0}
-.st.full li{font-size:clamp(22px,min(7vw,4.2vh),36px)}
+.verdict{padding:6px 0 18px}
+.verdict .big{font-size:clamp(34px,min(11vw,6.5vh),64px);line-height:1.05}
+.verdict .ok{color:var(--ok)}.verdict .bad{color:#ff6b6b}.verdict .wait{color:#7d8cff}
+.verdict .sub{margin-top:8px}
+.cards{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;min-height:0}
+.cards>div{background:var(--card);border-radius:20px;padding:16px;display:flex;flex-direction:column;
+justify-content:space-between;text-align:left;border:2px solid transparent;min-height:0}
+.cards>div.ok{border-color:rgba(60,207,110,.55)}.cards>div.bad{border-color:rgba(255,107,107,.6)}
+.cards>div.wait{border-color:rgba(125,140,255,.6)}
+.cards i{width:clamp(22px,4.5vh,40px);height:clamp(22px,4.5vh,40px);border-radius:50%;background:var(--line)}
+.cards .ok i{background:var(--ok);box-shadow:0 0 22px rgba(60,207,110,.55)}
+.cards .bad i{background:#ff6b6b;box-shadow:0 0 22px rgba(255,107,107,.5)}
+.cards .wait i{background:#7d8cff;box-shadow:0 0 22px rgba(125,140,255,.5)}
+.cards b{font-size:clamp(26px,min(9vw,5.2vh),48px);font-weight:900;letter-spacing:-.01em}
+.cards span{color:var(--dim);font-size:clamp(14px,2.1vh,19px);line-height:1.25}
+#journey .grow{background:radial-gradient(ellipse at 20% 50%,rgba(47,111,218,.16),transparent 70%);border-radius:18px}
+.jhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.jhead .big{font-size:clamp(30px,min(10vw,6vh),56px);text-align:left}
+.jhead span{color:var(--dim);font-size:clamp(13px,2vh,17px);white-space:nowrap}
+.prog{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:8px 0 2px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,#2f6fda,var(--sig))}
+#jr-svg{position:absolute;left:0;top:0;width:64px;height:100%;overflow:visible}
+#journey .grow{padding:6px 0}
+#journey .route{padding-left:0}#journey .route li{padding-left:70px}
+#journey .route li::before,#journey .route li::after{display:none}
 .hero{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
 .hero .huge{font-size:clamp(84px,min(32vw,20vh),210px);margin:0}
 .hero .sub{font-size:clamp(15px,2.4vh,22px)}
@@ -779,8 +802,10 @@ async function live(){
  const st=(id,cls,txt)=>{$(id).className=cls;$(id+'t').textContent=txt};
  const fresh=!!S.fresh;
  st('s-br',fresh?'ok':'bad',fresh?T.runs:T.off);
- st('s-s4',S.s4?'ok':'bad',S.s4?T.conn+(S.s4_fw?' · '+T.fw+' '+S.s4_fw.split(' ').pop():''):T.cable);
- st('s-app',S.app?'ok':'wait',S.app?T.conn:T.waits);
+ st('s-s4',fresh&&S.s4?'ok':'bad',fresh&&S.s4?T.conn+(S.s4_fw?' · '+T.fw+' '+S.s4_fw.split(' ').pop():''):T.cable);
+ st('s-app',fresh&&S.app?'ok':'wait',fresh&&S.app?T.conn:T.waits);
+ const v=!fresh?['bad',T.v_off,T.h_off]:!S.s4?['bad',T.v_s4,T.h_s4]:!S.app?['wait',T.v_app,T.h_app]:['ok',T.v_ok,''];
+ $('s-v').className='big '+v[0];$('s-v').textContent=v[1];$('s-vh').textContent=v[2];
 }
 // --- alle 10 s: Reise und Akku ---
 async function slow(){
@@ -795,11 +820,33 @@ async function slow(){
   const past=g.stops.filter(s=>s[0]<=g.km),ahead=g.stops.filter(s=>s[0]>g.km);
   const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let li=past.slice(-1).map(s=>'<li class="past">'+esc(s[1])+'<span>'+kmf(g.km-s[0])+' km</span></li>');
-  if(!g.done)li.push('<li class="here">'+esc(T.here)+'<span>'+kmf(g.km)+' / '+kmf(g.total)+' km</span></li>');
+  if(!g.done)li.push('<li class="here">'+esc(T.here)+'<span></span></li>');
   li=li.concat(ahead.slice(0,5).map(s=>'<li>'+esc(s[1])+'<span>'+kmf(s[0]-g.km)+' km</span></li>'));
   $('jr-route').innerHTML=li.join('');
+  $('jr-bar').style.width=Math.min(100,g.km/g.total*100).toFixed(1)+'%';
+  $('jr-prog').textContent=kmf(g.km)+' / '+kmf(g.total)+' km';
+  G=g;river()
  }catch(e){}
 }
+// Fluss als geschwungene Linie, Orte als Bojen, das Boot bei "Du bist hier"
+let G=null;
+function river(){
+ const svg=$('jr-svg'),ul=$('jr-route');if(!svg||!G)return;
+ const h=ul.clientHeight,top=ul.getBoundingClientRect().top,X=y=>30+9*Math.sin(y/38);
+ let d='';for(let y=0;y<=h;y+=4)d+=(d?'L':'M')+X(y).toFixed(1)+','+y;
+ const items=[...ul.children].map(li=>{const r=li.getBoundingClientRect();return{y:r.top-top+r.height/2,cls:li.className}});
+ const here=items.find(i=>i.cls=='here');
+ let out='<path d="'+d+'" fill="none" stroke="#2f6fda" stroke-width="16" stroke-linecap="round" opacity=".35"/>'+
+  '<path d="'+d+'" fill="none" stroke="#5b9bff" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round" opacity=".7"/>';
+ if(here){let p='';for(let y=0;y<=here.y;y+=4)p+=(p?'L':'M')+X(y).toFixed(1)+','+y;
+  out+='<path d="'+p+'" fill="none" stroke="#ff5a1f" stroke-width="5" stroke-linecap="round"/>'}
+ for(const it of items){const x=X(it.y);
+  if(it.cls=='here')out+='<g transform="translate('+x.toFixed(1)+','+it.y.toFixed(1)+')"><circle r="17" fill="#ff5a1f" opacity=".25"/>'+
+   '<path d="M-11,1 L11,1 L7,8 L-7,8 Z" fill="#f2f2ee"/><path d="M0,-12 L0,0 M0,-12 L8,-2 L0,-2" stroke="#f2f2ee" stroke-width="2.4" fill="none" stroke-linejoin="round"/></g>';
+  else out+='<circle cx="'+x.toFixed(1)+'" cy="'+it.y.toFixed(1)+'" r="7" fill="'+(it.cls=='past'?'#ff5a1f':'#000')+
+   '" stroke="'+(it.cls=='past'?'#ff5a1f':'#f2f2ee')+'" stroke-width="2.5"/>'}
+ svg.innerHTML=out}
+addEventListener('resize',river);
 // --- 10 Hz nur fuer Taktgeber und Live-Kurve ---
 let W={};
 const P={phase:0,period:null,t:performance.now()/1000,last:0,started:false,warm:0,marks:[]};
@@ -856,12 +903,18 @@ def screen_page():
     texts = {"locale": "de-DE" if lang == "de" else "en-GB", "dec": "," if lang == "de" else ".",
              "training": L("Training"), "pause": L("Pause"), "runs": L("läuft"), "off": L("aus"),
              "conn": L("verbunden"), "cable": L("Kabel?"), "waits": L("wartet"), "fw": L("Firmware"),
-             "done": L("Ziel erreicht"), "here": L("Du bist hier"), "spm": int(conf.get("pacer_spm") or 0),
+             "done": L("Ziel erreicht"), "here": L("Du bist hier"),
+             "v_ok": L("Bereit zum Rudern"), "v_off": L("Brücke aus"), "v_s4": L("S4 nicht verbunden"),
+             "v_app": L("App nicht verbunden"), "h_off": L("Brücke startet oder ist gestoppt. Bitte kurz warten."),
+             "h_s4": L("S4 einschalten, Kabel in den inneren USB-Anschluss"),
+             "h_app": L("In der App mit „WaterRower S4“ verbinden"), "spm": int(conf.get("pacer_spm") or 0),
              "own": L("Takt {spm}/min · dein Rhythmus", spm="{spm}"), "fixed": L("Takt {spm}/min · fest", spm="{spm}")}
-    journey = f"""<section class="slide" id="journey"><div class="sc full"><div class="t" id="jr-river">{L("Reise")}</div>
+    journey = f"""<section class="slide" id="journey"><div class="sc full">
+<div class="jhead"><div class="big" id="jr-river">{L("Reise")}</div><span id="jr-prog"></span></div>
+<div class="prog"><i id="jr-bar" style="width:0"></i></div>
 <div class="navc"><div class="lab">{L("Nächste Etappe")}</div><div class="big" id="jr-next">…</div>
 <div class="r2"><span><span id="jr-nkm"></span> km</span><span class="warn" id="jr-neta"></span></div></div>
-<div class="grow"><ul class="route" id="jr-route"></ul></div>
+<div class="grow"><svg id="jr-svg"></svg><ul class="route" id="jr-route"></ul></div>
 <div class="goal"><div class="lab">{L("Ziel")}</div><div class="r2"><b id="jr-goal"></b><span id="jr-gkm"></span></div>
 <div class="lab" id="jr-geta"></div></div></div></section>""" if game else ""
     body = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
@@ -889,9 +942,12 @@ def screen_page():
 <section class="slide" id="wave"><div class="sc full"><div class="t">{L("Live-Kurve")}</div>
 <div class="grow"><canvas id="wv"></canvas></div></div></section>
 {journey}
-<section class="slide" id="status"><div class="sc full"><div class="t">Rowbox</div><ul class="st full">
-<li><i id="s-br"></i>{L("Brücke")}<span id="s-brt"></span></li><li><i id="s-s4"></i>S4<span id="s-s4t"></span></li>
-<li><i id="s-app"></i>App<span id="s-appt"></span></li><li><i id="s-bat"></i>{L("Akku")}<span id="s-batt"></span></li></ul></div></section>
+<section class="slide" id="status"><div class="sc full"><div class="t">Rowbox</div>
+<div class="verdict"><div class="big" id="s-v">…</div><div class="sub" id="s-vh"></div></div>
+<div class="cards"><div id="s-br"><i></i><b>{L("Brücke")}</b><span id="s-brt"></span></div>
+<div id="s-s4"><i></i><b>S4</b><span id="s-s4t"></span></div>
+<div id="s-app"><i></i><b>App</b><span id="s-appt"></span></div>
+<div id="s-bat"><i></i><b>{L("Akku")}</b><span id="s-batt"></span></div></div></div></section>
 </main><div class="hint" id="hint">{L("Zur Seite wischen für weitere Ansichten")}</div>
 <script>const T={json.dumps(texts)};{SCREEN_JS}</script></body></html>"""
     return body
