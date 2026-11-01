@@ -182,6 +182,15 @@ export function start(el, state) {
   envScene.add(new THREE.Mesh(new THREE.SphereGeometry(10, 24, 12), skyMat));
   let envTarget = null, WX = null, wxKey = "";          // Wetter an der Position (von der Box, wenn online)
   const mixC = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), Math.min(1, Math.max(0, t)));
+  // Feste Stimmungen (Portal → Einstellungen → Reise): Sonnenstand in Grad und Wetter
+  const PRESETS = {
+    // az relativ zur Fahrtrichtung: 0 = voraus, 180 = im Ruecken; so steht die Sonne immer gut im Bild
+    day: { alt: 48, az: 150, wx: { cloud: 22, code: 1, wind: 2.5, vis: 30000 } },
+    sunset: { alt: 3.5, az: -18, day: 0.55, glow: 1, wx: { cloud: 30, code: 2, wind: 1.2, vis: 30000 } },
+    fog: { alt: 10, az: 12, wx: { cloud: 85, code: 45, wind: 0.4, vis: 380 } },
+    rain: { alt: 32, az: 160, wx: { cloud: 100, code: 63, wind: 6, rain: 2.2, vis: 5000 } },
+  };
+  let MODE = "real", skyHd = 0;                    // Fahrtrichtung (ab Nord) fuer die festen Stimmungen
   function wxKind() {
     const c = WX && WX.code;
     if (c == null) return "";
@@ -194,8 +203,11 @@ export function start(el, state) {
   function sky() {
     // Echter Sonnenstand am Ort auf der Strecke (ohne Kartendaten: Mitteleuropa)
     const ll = skyLL || [50.1, 7.7];
-    const sp = sunAt(ll[0], ll[1], new Date()), elev = Math.sin(sp.alt);
-    const day = Math.min(1, Math.max(0, (elev + 0.03) * 4)), glow = Math.max(0, 1 - Math.abs(elev + 0.02) * 9);
+    const pre = PRESETS[MODE];
+    const sp = pre ? { alt: pre.alt * Math.PI / 180, az: skyHd + pre.az * Math.PI / 180 } : sunAt(ll[0], ll[1], new Date());
+    const elev = Math.sin(sp.alt);
+    let day = Math.min(1, Math.max(0, (elev + 0.03) * 4)), glow = Math.max(0, 1 - Math.abs(elev + 0.02) * 9);
+    if (pre && pre.glow != null) { day = pre.day; glow = pre.glow; }   // Sonnenuntergang kraeftiger als die reine Rechnung
     const top = mixC(0x0b1530, 0x3f7fd0, day), horizon = mixC(0x1a2440, 0xc9def0, day).lerp(new THREE.Color(0xf0a070), glow * 0.6);
     // Bewoelkung: Himmel grauer, Sonne schwaecher; Sicht bestimmt den Dunst
     const cloud = WX && WX.cloud != null ? WX.cloud / 100 : 0, wet = wxKind() === "rain" ? 0.25 : 0;
@@ -935,9 +947,15 @@ export function start(el, state) {
       shirt.color.set(L.shirt || "#ff5a1f");
       wxKey = "";                                      // Schild neu bewerten (falls abgeschaltet)
     }
-    const wk = JSON.stringify(G.weather || null) + (wants("weather") ? "" : "-");
+    MODE = G.sky || "real";
+    if (PRESETS[MODE]) {                               // Sonne bleibt in der Stimmung, auch wenn der Fluss dreht
+      const hd = Math.atan2(cam.fx, -cam.fz), dd = Math.abs(((hd - skyHd + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI);
+      if (dd > 0.35) { skyHd = hd; wxKey = ""; }
+    }
+    const pre = PRESETS[MODE], wxNow = pre ? pre.wx : (MODE === "time" ? null : G.weather || null);
+    const wk = MODE + JSON.stringify(wxNow) + (wants("weather") ? "" : "-");
     if (wk !== wxKey) {
-      wxKey = wk; WX = G.weather || null; sky();
+      wxKey = wk; WX = wxNow; sky();
       wxLabel.textContent = (WX && WX.label) || "";
       wxLabel.style.display = WX && WX.label && wants("weather") ? "block" : "none";
       const w = WX && WX.wind != null ? WX.wind : 2;

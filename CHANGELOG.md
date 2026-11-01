@@ -26,6 +26,7 @@
 - Phone display: full-screen button (iPad, Android, desktop); on the iPhone it explains "Add to Home Screen", which starts Rowbox without bars like an app (icon and web app manifest included)
 - Phone display: compact cockpit for flat landscape screens (phone with browser bars), so the panels leave the river free
 - 3D view: resolution follows the measured frame rate (older iPads render coarser and stay smooth, fast phones get full sharpness); the 3D files are no longer cached for a day, so updates show up at once
+- Settings → Journey: light and weather of the 3D view: real (time of day and local weather), real time without weather, or a fixed mood: sunny day, sunset, misty morning, rainy day; the sun of a mood stays in view when the river turns
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2

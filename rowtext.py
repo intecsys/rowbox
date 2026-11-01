@@ -335,6 +335,10 @@ EN = {
     "Vollbild": "Full screen", "Vollbild auf dem iPhone": "Full screen on the iPhone",
     "In Safari auf Teilen tippen und „Zum Home-Bildschirm“ wählen. Rowbox startet dann ohne Leisten, wie eine App.":
         "In Safari tap Share and choose “Add to Home Screen”. Rowbox then opens without bars, like an app.",
+    "Licht und Wetter in der 3D-Ansicht": "Light and weather in the 3D view",
+    "Echt: Uhrzeit und Wetter vor Ort": "Real: time of day and local weather", "Echte Uhrzeit, ohne Wetter": "Real time of day, no weather",
+    "Sonniger Tag": "Sunny day", "Sonnenuntergang": "Sunset", "Nebliger Morgen": "Misty morning", "Regenwetter": "Rainy day",
+    "„Echt“ holt das Wetter bei Open-Meteo, wenn die Box online ist.": "“Real” fetches the weather from Open-Meteo when the box is online.",
     # Wetter auf der Reise
     "klar": "clear", "heiter": "mostly sunny", "wolkig": "partly cloudy", "bedeckt": "overcast",
     "Nebel": "fog", "Nieselregen": "drizzle", "leichter Regen": "light rain", "Regen": "rain",

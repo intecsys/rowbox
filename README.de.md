@@ -45,8 +45,9 @@ Zuganfang.
   für die Strecke, die nächste Etappe und fünf Live-Werte (Meter, Pace, Schlagzahl, Watt, Zeit).
   Der Bildschirm bleibt beim Rudern an.
 - **Nach deinem Geschmack:** Unter Einstellungen → Reise wählst du, was die Reise-Ansicht zeigt
-  (3D-Ansicht, Live-Werte, nächste Etappe, Orte, Ziel, kleine Karte, Wetter-Schild), und die
-  Farben von Boot, Blättern und Shirt des Ruderers.
+  (3D-Ansicht, Live-Werte, nächste Etappe, Orte, Ziel, kleine Karte, Wetter-Schild), die Farben
+  von Boot, Blättern und Shirt des Ruderers und das Licht: echte Uhrzeit und Wetter oder eine
+  feste Stimmung (sonniger Tag, Sonnenuntergang, nebliger Morgen, Regenwetter).
 - **Gemacht fürs Handy:** three.js läuft im Browser des Handys, der Pi liefert nur die Dateien.
   Die Szene rechnet nur, solange die Reise-Ansicht sichtbar ist.
 

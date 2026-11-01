@@ -49,6 +49,7 @@ DEFAULTS = {"led": "warn", "timeout": 120, "summary": 600, "hotspot": True, "sou
             "mqtt_topic": "rowbox", "anim": "pacer", "pacer_spm": 0, "views": None, "game": True,
             "display": True,          # False: ohne Whisplay eingerichtet (setup.sh --no-display)
             "weather": True,          # echtes Wetter an der virtuellen Position (nur wenn die Box online ist)
+            "sky": "real",            # Licht und Wetter der 3D-Ansicht: echt oder eine feste Stimmung
             "journey_show": None,     # None = alle Elemente der Reise-Ansicht auf dem Handy
             "boat_hull": "#f4f4f0", "boat_blade": "#ff5a1f", "boat_shirt": "#ff5a1f"}
 # Elemente der Reise-Ansicht auf dem Handy, einzeln abschaltbar
@@ -56,6 +57,9 @@ JOURNEY_PARTS = [("scene", "3D-Ansicht"), ("live", "Live-Werte (Pace, Schläge, 
                  ("list", "Orte auf der Strecke"), ("goal", "Ziel"), ("map", "Kleine Karte in der 3D-Ansicht"),
                  ("weather", "Wetter-Schild in der 3D-Ansicht")]
 COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
+# Licht und Wetter in der 3D-Ansicht: echt (Uhrzeit, Wetter vor Ort) oder eine feste Stimmung
+SKY_MODES = [("real", "Echt: Uhrzeit und Wetter vor Ort"), ("time", "Echte Uhrzeit, ohne Wetter"),
+             ("day", "Sonniger Tag"), ("sunset", "Sonnenuntergang"), ("fog", "Nebliger Morgen"), ("rain", "Regenwetter")]
 # Ansichten, die man mit der Display-Taste durchblaettern kann (Automatik ist immer dabei).
 # Info bleibt immer an: dort steht das Passwort fuers Portal.
 VIEW_CHOICES = [("status", "Status"), ("training", "Training"), ("force", "Kraftkurve"),
@@ -1237,7 +1241,8 @@ def screen_json():
                           "next_left": dec(st["next_left"]), "left": dec(st["left"]),
                           "eta_next": eta(st["eta_next"]), "eta_goal": eta(st["eta_goal"]),
                           "km": st["km"], "total": st["total"], "stops": [[k, n] for k, n in st["stops"]]}
-        if conf.get("weather", True):
+        out["journey"]["sky"] = sky_mode(conf)
+        if out["journey"]["sky"] == "real":
             out["journey"]["weather"] = weather_for(st["route"], st["km"])
         out["journey"]["show"] = conf.get("journey_show") or [k for k, _ in JOURNEY_PARTS]
         out["journey"]["look"] = {k[5:]: conf.get(k) or DEFAULTS[k] for k in ("boat_hull", "boat_blade", "boat_shirt")}
@@ -1577,6 +1582,18 @@ def route_opts():
     return "".join(out)
 
 
+def sky_opts(conf):
+    cur = sky_mode(conf)
+    return "".join(f'<option value="{k}" {"selected" if k == cur else ""}>{L(n)}</option>' for k, n in SKY_MODES)
+
+
+def sky_mode(conf):
+    m = conf.get("sky") or "real"
+    if m == "real" and not conf.get("weather", True):
+        m = "time"                                 # aeltere Einstellung "Wetter aus"
+    return m if m in dict(SKY_MODES) else "real"
+
+
 def journey_checks(conf):
     on = conf.get("journey_show") or [k for k, _ in JOURNEY_PARTS]
     return "".join(f'<label><input type="checkbox" name="j_{k}" value="1" {"checked" if k in on else ""}>{L(name)}</label>'
@@ -1627,8 +1644,8 @@ def settings_page(conf, msg=""):
 <label class="dim">{L("Anzeigen")}</label><select name="game">
 <option value="1" {sel("game", True)}>{L("an")}</option><option value="0" {sel("game", False)}>{L("aus")}</option></select>
 <label class="dim">{L("Strecke (ein Wechsel beginnt eine neue Reise bei 0 km)")}</label><select name="route">{route_opts()}</select>
-<label class="dim">{L("Echtes Wetter in der 3D-Ansicht (holt die Box bei Open-Meteo, wenn sie online ist)")}</label><select name="weather">
-<option value="1" {sel("weather", True)}>{L("an")}</option><option value="0" {sel("weather", False)}>{L("aus")}</option></select>
+<label class="dim">{L("Licht und Wetter in der 3D-Ansicht")}</label><select name="sky">{sky_opts(conf)}</select>
+<p class="dim" style="margin:-6px 0 6px;font-size:13px">{L("„Echt“ holt das Wetter bei Open-Meteo, wenn die Box online ist.")}</p>
 </div>
 <div class="card"><h2>{L("Reise-Ansicht auf dem Handy")}</h2>
 <p class="dim">{L("Welche Elemente die Reise-Ansicht zeigt.")}</p>
@@ -1993,7 +2010,8 @@ class Handler(BaseHTTPRequestHandler):
                        "pacer_spm": max(0, min(40, int(f.get("pacer_spm") or 0))),
                        "views": [k for k, _ in VIEW_CHOICES if k == "info" or f.get("v_" + k)],
                        "game": f.get("game", "1") == "1",
-                       "weather": f.get("weather", "1") == "1",
+                       "sky": f.get("sky") if f.get("sky") in dict(SKY_MODES) else "real",
+                       "weather": f.get("sky", "real") == "real",
                        "journey_show": [k for k, _ in JOURNEY_PARTS if f.get("j_" + k)],
                        **{k: (f.get(k) if COLOR.match(f.get(k) or "") else DEFAULTS[k]).lower()
                           for k in ("boat_hull", "boat_blade", "boat_shirt")},

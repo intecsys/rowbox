@@ -44,8 +44,9 @@ with the shape of your force curve. Stop rowing and he waits at the catch.
   the route, the next stage and five live values (metres, pace, stroke rate, watts, time).
   The screen stays on while you row.
 - **Make it yours:** in Settings → Journey you pick which parts the journey screen shows (3D view,
-  live values, next stage, places, destination, small map, weather label) and the colours of the
-  boat, the blades and the rower's shirt.
+  live values, next stage, places, destination, small map, weather label), the colours of the
+  boat, the blades and the rower's shirt, and the light: real time and weather, or a fixed mood
+  (sunny day, sunset, misty morning, rainy day).
 - **Made for the phone:** three.js runs in the phone's browser; the Pi only serves the files.
   The scene renders only while the journey screen is visible.
 
