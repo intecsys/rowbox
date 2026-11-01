@@ -4,17 +4,25 @@
 """Baut aus OpenStreetMap-Rohdaten eine kompakte Strecke fuer die 3D-Flussfahrt.
 
 Eingabe:  Overpass-Ergebnisse (`way(r) ... out geom tags;`) des Flusses,
-          optional Wikidata-Bruecken (SPARQL-JSON mit ?coord und ?de/?en).
-Ausgabe:  static/routes/<id>.json  — Flusslinie in Metern, Bruecken, Uferseite der Etappen.
+          optional Wikidata-Bruecken (SPARQL-JSON mit ?coord und ?de/?en),
+          optional Landmarken (Overpass `out tags center;`) und Gelaendehoehen.
+Ausgabe:  static/routes/<id>.json  — Flusslinie in Metern, Bruecken, Landmarken, Relief,
+          Uferseite der Etappen und grobe Lage (fuer das Wetter).
+
+Gelaendehoehen in zwei Schritten: `--heights-out punkte.json` schreibt die Messpunkte
+([lat, lon]-Liste), ein Hoehendienst liefert dazu die Hoehen in gleicher Reihenfolge,
+`--heights hoehen.json` baut sie ein.
 
 Die Linie wird so skaliert, dass die Laenge zwischen den Etappen genau den Kilometern
 der Fahrt in rowgame.py entspricht. Die Rohdaten selbst kommen nicht ins Repo.
 
 Daten: © OpenStreetMap-Mitwirkende (ODbL 1.0), Wikidata (CC0).
 
-    python3 tools/build_route.py rhine --osm daten/rhein-*.json --bridges wd-bridges.json
+    python3 tools/build_route.py rhine --osm daten/rhein-*.json --bridges wd-bridges.json \
+        --landmarks daten/marken-*.json --heights daten/hoehen.json
 """
 import argparse
+import bisect
 import heapq
 import json
 import math
@@ -167,7 +175,33 @@ def cumulative(xy):
     return s
 
 
-def project(xy, cum, p):
+class Grid:
+    """Einfacher Raster-Index fuer Punkte (Meter), damit Suchen nicht ueber alle Punkte laufen."""
+
+    def __init__(self, xy, cell=500.0):
+        self.cell, self.xy, self.g = cell, xy, {}
+        for i, (x, y) in enumerate(xy):
+            self.g.setdefault((int(x // cell), int(y // cell)), []).append(i)
+
+    def near(self, x, y):
+        cx, cy = int(x // self.cell), int(y // self.cell)
+        for r in range(0, 400):
+            cand = [i for dx in range(-r, r + 1) for dy in range(-r, r + 1)
+                    if max(abs(dx), abs(dy)) == r for i in self.g.get((cx + dx, cy + dy), ())]
+            if cand:
+                # eine Ringbreite weiter kann noch naeher liegen
+                cand += [i for dx in range(-r - 1, r + 2) for dy in range(-r - 1, r + 2)
+                         if max(abs(dx), abs(dy)) == r + 1 for i in self.g.get((cx + dx, cy + dy), ())]
+                return min(cand, key=lambda i: (self.xy[i][0] - x) ** 2 + (self.xy[i][1] - y) ** 2)
+        return 0
+
+
+def project(xy, cum, p, grid=None):
+    if grid is not None:                                 # nur die Abschnitte um den naechsten Punkt
+        i = grid.near(*p)
+        lo, hi = max(0, i - 400), min(len(xy), i + 401)
+        s, d, side = project(xy[lo:hi], [c - cum[lo] for c in cum[lo:hi]], p)
+        return s + cum[lo], d, side
     """Naechster Punkt der Linie: (Strecke s, Abstand, Seite +1 rechts / -1 links in Fahrtrichtung)."""
     best = (math.inf, 0.0, 1)
     for i, (a, b) in enumerate(zip(xy, xy[1:])):
@@ -182,11 +216,40 @@ def project(xy, cum, p):
     return best[1], best[0], best[2]
 
 
+def landmark_kind(t):
+    """Art einer Landmarke und wie weit sie vom Fluss entfernt sein darf (Meter)."""
+    if not (t.get("name") or t.get("name:de")):
+        return None, 0
+    hist, bld = t.get("historic", ""), t.get("building", "")
+    if hist in ("castle", "fort") or (hist == "ruins" and t.get("ruins") in ("castle", "fortress")):
+        return ("ruin" if hist == "ruins" or t.get("ruins") == "yes" else "castle"), 2500
+    if bld == "cathedral" or t.get("church:type") == "cathedral" or "Dom " in t.get("name", "") + " " \
+            or t.get("name", "").endswith("dom"):
+        return "cathedral", 1500
+    if bld in ("church", "chapel") or t.get("amenity") == "place_of_worship":
+        return ("church", 700) if t.get("wikidata") else (None, 0)
+    if t.get("man_made") == "lighthouse":
+        return "lighthouse", 800
+    if t.get("man_made") == "tower" and t.get("tower:type") in ("observation", "defensive", "bell_tower"):
+        return "tower", 1200
+    if t.get("natural") in ("cliff", "rock", "peak") and t.get("wikidata"):
+        return "rock", 1500
+    return None, 0
+
+
+def landmark_rank(t, kind):
+    base = {"cathedral": 6, "castle": 5, "rock": 5, "ruin": 4, "lighthouse": 3, "tower": 3, "church": 2}[kind]
+    return base + (1 if t.get("wikipedia") else 0) + (1 if t.get("heritage") else 0)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("route")
     ap.add_argument("--osm", nargs="+", required=True)
     ap.add_argument("--bridges")
+    ap.add_argument("--landmarks", nargs="*", default=[])
+    ap.add_argument("--heights-out")
+    ap.add_argument("--heights")
     ap.add_argument("--width", type=float, default=160)
     ap.add_argument("--out")
     a = ap.parse_args()
@@ -200,25 +263,57 @@ def main():
     path = shortest(g, places[first], places[last])
     lat0, lon0 = path[0]
 
+    raw = to_xy(path)
+    rgrid = Grid(raw)
+
     def xy_of(lat, lon):
         # gleiche Aufsummierung wie to_xy, ueber den naechsten Linienpunkt angeschlossen
-        i = min(range(len(path)), key=lambda k: dist(path[k], (lat, lon)))
+        dx0, dy0 = local(lat0, lat, lon0, lon)           # grobe Lage, nur zum Finden des Nachbarn
+        i = rgrid.near(dx0, dy0)
+        for _ in range(3):                               # grobe Lage driftet ueber weite Strecken: nachziehen
+            dx, dy = local(path[i][0], lat, path[i][1], lon)
+            j = rgrid.near(raw[i][0] + dx, raw[i][1] + dy)
+            if j == i:
+                break
+            i = j
         dx, dy = local(path[i][0], lat, path[i][1], lon)
         return raw[i][0] + dx, raw[i][1] + dy
 
-    raw = to_xy(path)
+    def latlon_of(x, y):
+        i = rgrid.near(x, y)
+        la = path[i][0] + math.degrees((y - raw[i][1]) / R)
+        return la, path[i][1] + math.degrees((x - raw[i][0]) / (R * math.cos(math.radians(la))))
+
     line = smooth(resample(raw, 10), 6)                 # Ecken der OSM-Mittellinie weich ziehen
     cum = cumulative(line)
+    lgrid = Grid(line)
 
     # Auf die Kilometer der Fahrt skalieren, Etappe fuer Etappe.
     stops = route["stops"]
-    marks = [(stops[i][0] * 1000, project(line, cum, xy_of(*places[i]))) for i in range(first, last + 1)]
+    marks = [(stops[i][0] * 1000, project(line, cum, xy_of(*places[i]), lgrid)) for i in range(first, last + 1)]
     knots = [(km, pr[0]) for km, pr in marks]
     def game_s(sr):
         for (g0, r0), (g1, r1) in zip(knots, knots[1:]):
             if sr <= r1 or (g1, r1) == knots[-1]:
                 return g0 + (sr - r0) * (g1 - g0) / ((r1 - r0) or 1)
         return sr
+
+    def real_s(gs):
+        for (g0, r0), (g1, r1) in zip(knots, knots[1:]):
+            if gs <= g1 or (g1, r1) == knots[-1]:
+                return r0 + (gs - g0) * (r1 - r0) / ((g1 - g0) or 1)
+        return gs
+
+    def frame(sr):
+        """Punkt und Richtung (Ost, Nord) der Linie bei echter Strecke sr."""
+        sr = max(0.0, min(cum[-1], sr))
+        i = max(0, min(len(line) - 2, bisect.bisect_right(cum, sr) - 1))
+        a_, b_ = line[i], line[i + 1]
+        L = (cum[i + 1] - cum[i]) or 1
+        k = (sr - cum[i]) / L
+        return (a_[0] + (b_[0] - a_[0]) * k, a_[1] + (b_[1] - a_[1]) * k,
+                (b_[0] - a_[0]) / L, (b_[1] - a_[1]) / L)
+
     scaled = [line[0]]
     for i in range(1, len(line)):
         a_, b_ = line[i - 1], line[i]
@@ -235,7 +330,7 @@ def main():
             if "ferry" in b.get("type", {}).get("value", ""):
                 continue
             lon, lat = map(float, b["coord"]["value"][6:-1].split())
-            s, d, _ = project(line, cum, xy_of(lat, lon))
+            s, d, _ = project(line, cum, xy_of(lat, lon), lgrid)
             if d > 250 or s <= 0 or s >= cum[-1]:
                 continue
             s = game_s(s)
@@ -246,6 +341,59 @@ def main():
             bridges.append([round(s), name])
         bridges.sort()
 
+    landmarks = []
+    for f in a.landmarks:
+        for e in json.load(open(f, encoding="utf-8")).get("elements", []):
+            t, c = e.get("tags", {}), e.get("center") or e
+            kind, reach = landmark_kind(t)
+            if not kind or "lat" not in c:
+                continue
+            s, d, side = project(line, cum, xy_of(c["lat"], c["lon"]), lgrid)
+            if d > reach or s <= 0 or s >= cum[-1]:
+                continue
+            name = t.get("name:de") or t.get("name")
+            landmarks.append([round(game_s(s)), side, round(d), kind, name, landmark_rank(t, kind)])
+    # pro 1,5 km und Seite nur die wichtigste Landmarke, damit das Ufer nicht ueberladen wirkt
+    landmarks.sort(key=lambda m: -m[5])
+    keep = []
+    for m in landmarks:
+        if not any(abs(m[0] - k[0]) < 1500 and m[1] == k[1] for k in keep) and \
+                not any(m[4] == k[4] and abs(m[0] - k[0]) < 5000 for k in keep):
+            keep.append(m)
+    landmarks = sorted(m[:5] for m in keep)
+
+    # Grobe Lage alle 2 km, fuer Wetter und Anzeige
+    geo, gs = [], knots[0][0]
+    while gs <= knots[-1][0]:
+        x, y, _, _ = frame(real_s(gs))
+        la, lo = latlon_of(x, y)
+        geo += [round(la, 3), round(lo, 3)]
+        gs += 2000
+
+    relief = None
+    step, offs = 200, [-1500, -1000, -650, -400, -220, -110, 110, 220, 400, 650, 1000, 1500]
+    rows = []
+    gs = knots[0][0]
+    while gs <= knots[-1][0]:
+        x, y, fx, fy = frame(real_s(gs))
+        rows.append([latlon_of(x + fy * o, y - fx * o) for o in offs])   # rechts = (fy, -fx)
+        gs += step
+    if a.heights_out:
+        with open(a.heights_out, "w") as f:
+            json.dump([[round(p[0], 5), round(p[1], 5)] for r in rows for p in r], f)
+        print(f"{len(rows) * len(offs)} Messpunkte → {a.heights_out}")
+    if a.heights:
+        h = json.load(open(a.heights))
+        n = len(offs)
+        if len(h) != len(rows) * n:
+            sys.exit(f"Hoehen passen nicht zu den Messpunkten ({len(h)} statt {len(rows) * n}).")
+        H = [h[i * n:(i + 1) * n] for i in range(len(rows))]
+        inner = [min(r[5], r[6]) for r in H]                         # Ufer +-110 m ~ Wasserspiegel
+        lvl = [min(inner[max(0, i - 5):i + 6]) for i in range(len(H))]
+        lvl = [sum(lvl[max(0, i - 5):i + 6]) / len(lvl[max(0, i - 5):i + 6]) for i in range(len(H))]
+        rel = [max(0, min(400, round(v - lvl[i]))) for i, r in enumerate(H) for v in r]
+        relief = {"step": step, "offs": offs, "h": rel}
+
     out = {
         "id": a.route,
         "attribution": "© OpenStreetMap-Mitwirkende (ODbL), Wikidata",
@@ -253,14 +401,19 @@ def main():
         "start": round(off),
         "pts": [v for p in pts for v in (round(p[0], 1), round(p[1], 1))],
         "bridges": bridges,
+        "landmarks": landmarks,
+        "geo": {"step": 2000, "ll": geo},
         "stops": [[stops[i][0], pr[2]] for i, (_, pr) in zip(range(first, last + 1), marks)],
     }
+    if relief:
+        out["relief"] = relief
     dst = a.out or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "static", "routes", a.route + ".json")
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     with open(dst, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"{a.route}: {len(pts)} Punkte, {pcum[-1] / 1000:.1f} km (Etappen {first}–{last}), "
-          f"{len(bridges)} Bruecken, {os.path.getsize(dst) // 1024} KB → {dst}")
+          f"{len(bridges)} Bruecken, {len(landmarks)} Landmarken, Relief {'ja' if relief else 'nein'}, "
+          f"{os.path.getsize(dst) // 1024} KB → {dst}")
     for km, pr in marks:
         print(f"  km {km / 1000:6.1f}: OSM {pr[0] / 1000:6.1f} km, {pr[1]:5.0f} m neben der Linie, "
               f"{'rechts' if pr[2] > 0 else 'links'}")

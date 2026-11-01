@@ -48,7 +48,32 @@ function realRoute(R) {
   for (let i = 0; i < n; i++) { X.push(R.pts[2 * i]); Z.push(-R.pts[2 * i + 1]); }
   const line = polyline(X, Z, R.start || 0);
   return { width: R.width || 160, real: true, at: line.at, bridges: R.bridges || [], X, Z,
+           landmarks: R.landmarks || [], relief: relief(R.relief, R.start || 0),
            sides: new Map((R.stops || []).map(([km, side]) => [km, side])), attribution: R.attribution };
+}
+
+// Gelaendehoehe ueber dem Wasserspiegel aus dem Hoehenraster der Strecke (Meter; off > 0 rechts).
+function relief(F, s0) {
+  if (!F || !F.h) return null;
+  const n = F.offs.length, rows = F.h.length / n, inner = F.offs.findIndex(o => o > 0);
+  function row(r, off) {
+    const b = r * n, h = F.h, o = F.offs;
+    if (off >= o[n - 1]) return h[b + n - 1];
+    if (off <= o[0]) return h[b];
+    let j = 0;
+    while (o[j + 1] < off) j++;
+    if (j === inner - 1) return null;                  // zwischen den Ufern: Wasser
+    const k = (off - o[j]) / (o[j + 1] - o[j]);
+    return h[b + j] + (h[b + j + 1] - h[b + j]) * k;
+  }
+  return (s, off, half) => {
+    const t = Math.min(rows - 1, Math.max(0, (s - s0) / F.step)), r = Math.min(rows - 2, Math.floor(t)), k = t - r;
+    const edge = off > 0 ? F.offs[inner] : F.offs[inner - 1];
+    const lim = Math.abs(off) < Math.abs(edge) ? edge : off;   // naeher am Ufer: zum Ufer hin auf 0 auslaufen
+    const v = row(r, lim) * (1 - k) + row(r + 1, lim) * k;
+    if (lim === off) return v;
+    return v * Math.max(0, (Math.abs(off) - half) / (Math.abs(edge) - half));
+  };
 }
 
 const rng = seed => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
@@ -171,6 +196,18 @@ export function start(el, state) {
   }
 
   const hill = (s, side) => 45 * Math.max(0, Math.sin(s / 1300 + side) * 0.6 + Math.sin(s / 410 + side * 2) * 0.4);
+  // Hoehe des Gelaendes neben dem Fluss: echtes Relief, wenn die Strecke eins hat, sonst erfundene Huegel
+  const BANK = [0, 6, 40, 160, 420, 900], BASE = [0.2, 1.5, 3, 8, 1, 1];
+  function ground(s, off) {
+    const d = Math.abs(off) - WIDTH / 2, side = Math.sign(off) || 1;
+    let base = BASE[BASE.length - 1], c = BANK.length - 1;
+    for (let j = 0; j < BANK.length - 1; j++)
+      if (d < BANK[j + 1]) { c = j + Math.max(0, d - BANK[j]) / (BANK[j + 1] - BANK[j]); break; }
+    const j = Math.floor(Math.min(c, BANK.length - 1)), f = c - j;
+    base = j >= BANK.length - 1 ? BASE[j] : BASE[j] + (BASE[j + 1] - BASE[j]) * f;
+    if (path.relief) return Math.max(Math.min(base, 1.5), path.relief(s, off, WIDTH / 2));
+    return base + (c >= 2 ? hill(s, side) * (c - 1) / 3 : 0);
+  }
 
   function sign(text, big) {
     const cv = document.createElement("canvas");
@@ -208,24 +245,84 @@ export function start(el, state) {
     }
   }
 
+  // Landmarken aus OpenStreetMap: vereinfachte Modelle je Art, mit Namensschild
+  const darkRoof = new THREE.MeshLambertMaterial({ color: 0x3c4450 }), ruinMat = new THREE.MeshLambertMaterial({ color: 0xb3aa98 });
+  const whiteMat = new THREE.MeshLambertMaterial({ color: 0xf4f4f0 }), redMat = new THREE.MeshLambertMaterial({ color: 0xc8382c });
+  const rockMat = new THREE.MeshLambertMaterial({ color: 0x6e6a62 });
+  function landmark(group, s, off, kind, name, rand) {
+    const [x, z] = place(s, off), y = ground(s, off) - 1, rot = heading(s), part = new THREE.Group();
+    const add = (geo, mat, px, py, pz, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.rotation.y = ry; part.add(m); return m; };
+    let top = 30;
+    if (kind === "castle") {
+      add(new THREE.BoxGeometry(34, 16, 26), stoneMat, 0, 8, 0);
+      add(new THREE.BoxGeometry(14, 30, 14), stoneMat, -6, 15, -4);           // Bergfried
+      add(new THREE.ConeGeometry(11, 12, 4), darkRoof, -6, 36, -4, Math.PI / 4);
+      for (const [px, pz] of [[-17, -13], [17, -13], [17, 13], [-17, 13]]) {
+        add(new THREE.CylinderGeometry(4, 4.5, 22, 10), stoneMat, px, 11, pz);
+        add(new THREE.ConeGeometry(5.5, 9, 10), darkRoof, px, 26.5, pz);
+      }
+      top = 44;
+    } else if (kind === "ruin") {
+      for (let k = 0; k < 5; k++)
+        add(new THREE.BoxGeometry(4 + rand() * 18, 6 + rand() * 16, 3), ruinMat, (rand() - 0.5) * 28, 6, (rand() - 0.5) * 22, rand() * 3);
+      add(new THREE.CylinderGeometry(5, 6, 24, 10, 1, true), ruinMat, 8, 12, -6);
+      top = 30;
+    } else if (kind === "cathedral") {
+      add(new THREE.BoxGeometry(22, 26, 70), stoneMat, 0, 13, 0);
+      add(new THREE.BoxGeometry(23, 7, 70), darkRoof, 0, 29, 0);
+      for (const px of [-7, 7]) {
+        add(new THREE.BoxGeometry(10, 78, 10), stoneMat, px, 39, 38);
+        add(new THREE.ConeGeometry(7, 34, 4), stoneMat, px, 95, 38, Math.PI / 4);
+      }
+      top = 115;
+    } else if (kind === "church") {
+      add(new THREE.BoxGeometry(12, 12, 26), wallMat, 0, 6, 0);
+      add(new THREE.ConeGeometry(10, 7, 4), roofMat, 0, 15.5, 0, Math.PI / 4).scale.set(1, 1, 1.9);
+      add(new THREE.BoxGeometry(7, 30, 7), wallMat, 0, 15, 15);
+      add(new THREE.ConeGeometry(5.5, 14, 8), darkRoof, 0, 37, 15);
+      top = 48;
+    } else if (kind === "lighthouse" || kind === "tower") {
+      const lh = kind === "lighthouse";
+      for (let k = 0; k < 4; k++) add(new THREE.CylinderGeometry(3.6 - k * 0.3, 4 - k * 0.3, 7, 12), lh && k % 2 ? redMat : (lh ? whiteMat : stoneMat), 0, 3.5 + k * 7, 0);
+      add(new THREE.CylinderGeometry(3, 3, 4, 12), lh ? redMat : darkRoof, 0, 30, 0);
+      top = 38;
+    } else if (kind === "rock") {
+      if (!path.relief) {
+        const r = add(new THREE.DodecahedronGeometry(40, 0), rockMat, 0, 20, 0);
+        r.scale.set(1.2, 1.4, 1);
+      }
+      top = path.relief ? 20 : 75;
+    }
+    part.position.set(x, y, z);
+    part.rotation.y = rot;
+    group.add(part);
+    if (name) {
+      const sp = sign(name, false), k = 1 + Math.abs(off) / 500;
+      sp.scale.multiplyScalar(k);
+      sp.position.set(x, y + top + 6 * k, z);
+      group.add(sp);
+    }
+  }
+
   function town(group, s, side, name, rand) {
     const rot = heading(s);
     for (let i = 0; i < 14; i++) {
       const w = 7 + rand() * 6, d = 8 + rand() * 5, h = 6 + rand() * 6;
       const hs = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
       const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.75, 4, 4), roofMat);
-      const [px, pz] = place(s + (rand() - 0.3) * 160, side * (WIDTH / 2 + 18 + rand() * 120));
-      hs.position.set(px, h / 2, pz);
+      const hsS = s + (rand() - 0.3) * 160, hsO = side * (WIDTH / 2 + 18 + rand() * 120);
+      const [px, pz] = place(hsS, hsO), gy = ground(hsS, hsO) - 0.5;
+      hs.position.set(px, gy + h / 2, pz);
       hs.rotation.y = rot;
-      roof.position.set(px, h + 2, pz);
+      roof.position.set(px, gy + h + 2, pz);
       roof.rotation.y = rot + Math.PI / 4;
       group.add(hs, roof);
     }
-    const [tx, tz] = place(s + 40, side * (WIDTH / 2 + 60));
+    const [tx, tz] = place(s + 40, side * (WIDTH / 2 + 60)), ty = ground(s + 40, side * (WIDTH / 2 + 60)) - 0.5;
     const tower = new THREE.Mesh(new THREE.BoxGeometry(8, 34, 8), stoneMat);
-    tower.position.set(tx, 17, tz);
+    tower.position.set(tx, ty + 17, tz);
     const spire = new THREE.Mesh(new THREE.ConeGeometry(6.5, 16, 4), roofMat);
-    spire.position.set(tx, 42, tz);
+    spire.position.set(tx, ty + 42, tz);
     spire.rotation.y = Math.PI / 4;
     group.add(tower, spire);
     // Ortsschild ueber dem Wasser; erfundene Strecken bekommen dazu eine Bruecke
@@ -241,9 +338,8 @@ export function start(el, state) {
     const s0 = i * CHUNK, s1 = s0 + CHUNK, rand = rng(i * 7919 + 13), g = new THREE.Group();
     g.add(ribbon(s0, s1, [-WIDTH / 2 - 2, WIDTH / 2 + 2], () => 0, null, waterMat));
     for (const side of [-1, 1]) {
-      const offs = [WIDTH / 2, WIDTH / 2 + 6, WIDTH / 2 + 40, WIDTH / 2 + 160, WIDTH / 2 + 420, WIDTH / 2 + 900].map(o => o * side);
-      const hs = [0.2, 1.5, 3, 8, 1, 1];
-      const mesh = ribbon(s0, s1, offs, (s, c) => c < 2 ? hs[c] : hs[c] + hill(s, side) * (c - 1) / 3,
+      const offs = (path.relief ? [0, 6, 40, 100, 200, 350, 600, 1000, 1500] : BANK).map(o => (WIDTH / 2 + o) * side);
+      const mesh = ribbon(s0, s1, offs, (s, c) => ground(s, offs[c]),
         (s, c) => grass[(c + Math.floor(s / 90)) % grass.length].clone().offsetHSL(0, 0, (Math.sin(s / 37 + c) * 0.03)),
         groundMat);
       g.add(mesh);
@@ -252,7 +348,7 @@ export function start(el, state) {
       const m = new THREE.Matrix4();
       for (let k = 0; k < n; k++) {
         const s = s0 + rand() * CHUNK, d = WIDTH / 2 + 10 + Math.pow(rand(), 1.6) * 300, sc = 0.7 + rand() * 0.8;
-        const y = d > WIDTH / 2 + 40 ? 3 + hill(s, side) * Math.min(1, (d - WIDTH / 2 - 40) / 360) : 1.5;
+        const y = ground(s, side * d);
         const [px, pz] = place(s, side * d);
         m.makeScale(sc, sc, sc).setPosition(px, y + 7.5 * sc, pz);
         trees.setMatrixAt(k, m);
@@ -267,6 +363,8 @@ export function start(el, state) {
       if (s >= s0 && s < s1) town(g, s, side, name, rng(Math.round(km * 13) + 5));
     }
     for (const [s, name] of path.bridges || []) if (s >= s0 && s < s1) bridge(g, s, name);
+    for (const [s, side, d, kind, name] of path.landmarks || [])
+      if (s >= s0 && s < s1) landmark(g, s, side * Math.min(1300, Math.max(WIDTH / 2 + 35, d)), kind, name, rng(s));
     return g;
   }
 
