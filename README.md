@@ -18,6 +18,32 @@ slimmer versions without battery (**Light**) or without display and battery (**U
 </p>
 <p align="center"><sub>The box in its case, and six of its display screens: status, training with pacer, force curve, live flywheel wave, journey and a trophy.</sub></p>
 
+## Row the Rhine in 3D
+
+Every metre on the WaterRower moves you down a real river. On your phone the journey screen shows
+it as a small 3D scene: a single scull on the water, and the rower in it moves with **your**
+strokes. Each drive starts when you take a real catch, legs first, then the body, the boat surging
+with the shape of your force curve. Stop rowing and he waits at the catch.
+
+<p align="center"><img src="docs/rhine_3d_en.jpg" width="900" alt="3D journey on the Rhine: phone screen and four scenes with the Loreley, Pfalzgrafenstein castle, Burg Katz in the evening and rain at Burg Rheinstein"></p>
+
+- **The real Rhine, Basel to Rotterdam (834 km):** the course of the river from OpenStreetMap,
+  real terrain from elevation data (the Middle Rhine valley rises 150–200 m on both banks), 74 real
+  bridges and 242 landmarks with their names: castles from Rheinstein to Stolzenfels, the
+  Pfalzgrafenstein in the middle of the river, cathedrals, churches, towers, the Loreley rock and
+  the windmills of Kinderdijk. A small map shows where you are.
+- **Real light and weather:** the sun stands where it really stands at that place and time, so
+  you row into dusk on a November evening. When the box is online it fetches the current weather
+  at your virtual position: clouds by cover, rain and snow, fog by visibility, wind on the water,
+  and a small label like "9 °C · rain".
+- **Works offline:** the route ships with the box (about 85 KB), no map service needed while you
+  row. Without internet the sky simply stays fair.
+- **Made for the phone:** three.js runs in the phone's browser; the Pi only serves the files.
+  The scene renders only while the journey screen is visible.
+
+Other routes keep a generated river for now; `tools/build_route.py` turns OpenStreetMap data
+into a route file (see [CONTRIBUTING](CONTRIBUTING.md)).
+
 ## Features
 
 - **S4 → Bluetooth FTMS bridge:** distance, stroke rate, stroke count, pace, power, calories, time.
@@ -42,16 +68,12 @@ slimmer versions without battery (**Light**) or without display and battery (**U
   curve of every stroke, drive and recovery time.
 - **Phone as display:** `http://<hostname>.local/display` shows the box's screens full-screen on
   your phone: training, force curve, pacer, live wave, journey and status, switched by swiping left
-  and right. With the Ultralight version this is your display. The journey screen shows a small
-  3D view on top: a single scull whose rower moves in your real stroke rhythm (experimental).
-  On the Rhine the river follows its real course from OpenStreetMap, with the real terrain, bridges
-  and landmarks (castles, cathedrals, the Loreley, windmills) and a small map; other routes use
-  generated scenery. When the box is online it also shows the current weather at your virtual
-  position (clouds, rain, snow, fog, wind on the water). For that the box sends that position, not
-  yours, to [Open-Meteo](https://open-meteo.com) about every 15 minutes; you can switch it off in
-  the settings.
+  and right. With the Ultralight version this is your display. The journey screen shows the
+  [3D river](#row-the-rhine-in-3d). For the weather the box sends your virtual position on the
+  route, not yours, to [Open-Meteo](https://open-meteo.com) about every 15 minutes; you can switch
+  it off in the settings.
 
-  <p align="center"><img src="docs/phone_display_en.png" width="760" alt="Phone as display: training, force curve, pacer and journey screens"></p>
+  <p align="center"><img src="docs/phone_display_en.png" width="760" alt="Phone as display: training, force curve, journey in 3D and status screens"></p>
 
   <p align="center"><img src="docs/portal_en.png" width="760" alt="Web portal on a phone: live view, journey and session analysis"></p>
   <p align="center"><sub>Web portal on a phone: live view, journey and the analysis of one session.</sub></p>
@@ -65,7 +87,7 @@ slimmer versions without battery (**Light**) or without display and battery (**U
 - **Journey and trophies:** every metre you row moves a boat along a real route (English Channel,
   Rhine, Thames, Seine, Po, Nile, Yangtze, Mississippi, Amazon, Murray, the Onyx in Antarctica or
   across the Atlantic), shown like a navigation screen with the next stage, the destination and
-  relaxed arrival estimates. Trophies for things like the first
+  relaxed arrival estimates, and on the phone as a [3D scene](#row-the-rhine-in-3d). Trophies for things like the first
   10 km or an hour in one go appear on the display after a session. No streaks, no deadlines,
   nothing to lose; switch it off in the settings if you like.
 - **Your own set of screens:** in the settings you choose which screens the display button

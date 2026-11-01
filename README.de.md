@@ -18,6 +18,33 @@ schlanker ohne Akku (**Light**) oder ohne Display und Akku (**Ultralight**).
 </p>
 <p align="center"><sub>Die Box im Gehäuse und sechs ihrer Ansichten: Status, Training mit Taktgeber, Kraftkurve, Live-Kurve vom Paddelrad, Reise und eine Trophäe.</sub></p>
 
+## Den Rhein in 3D rudern
+
+Jeder Meter auf dem WaterRower bringt dich auf einem echten Fluss voran. Auf dem Handy zeigt die
+Reise-Ansicht das als kleine 3D-Szene: einen Einer auf dem Wasser, und der Ruderer darin bewegt sich
+mit **deinen** Schlägen. Jeder Durchzug beginnt mit deinem echten Zuganfang, erst die Beine, dann
+der Oberkörper, und das Boot schiebt nach der Form deiner Kraftkurve. Hörst du auf, wartet er am
+Zuganfang.
+
+<p align="center"><img src="docs/rhine_3d.jpg" width="900" alt="3D-Reise auf dem Rhein: Handyansicht und vier Szenen mit Loreley, Pfalz bei Kaub, Burg Katz am Abend und Regen an Burg Rheinstein"></p>
+
+- **Der echte Rhein, Basel bis Rotterdam (834 km):** der Flussverlauf aus OpenStreetMap, echtes
+  Gelände aus Höhendaten (im Mittelrheintal steigen die Hänge 150–200 m an), 74 echte Brücken und
+  242 Landmarken mit Namen: Burgen von Rheinstein bis Stolzenfels, die Pfalz bei Kaub mitten im
+  Fluss, Dome, Kirchen, Türme, die Loreley und die Windmühlen von Kinderdijk. Eine kleine Karte
+  zeigt, wo du bist.
+- **Echtes Licht und Wetter:** Die Sonne steht dort, wo sie an diesem Ort und zu dieser Zeit
+  wirklich steht, an einem Novemberabend ruderst du also in die Dämmerung. Ist die Box online,
+  holt sie das aktuelle Wetter an deiner virtuellen Position: Wolken nach Bewölkung, Regen und
+  Schnee, Nebel nach Sichtweite, Wind auf dem Wasser und ein kleines Schild wie „9 °C · Regen“.
+- **Läuft offline:** Die Strecke liegt auf der Box (etwa 85 KB), beim Rudern ist kein Kartendienst
+  nötig. Ohne Internet bleibt der Himmel einfach freundlich.
+- **Gemacht fürs Handy:** three.js läuft im Browser des Handys, der Pi liefert nur die Dateien.
+  Die Szene rechnet nur, solange die Reise-Ansicht sichtbar ist.
+
+Andere Strecken zeigen vorerst einen erzeugten Fluss; `tools/build_route.py` macht aus
+OpenStreetMap-Daten eine Streckendatei (siehe [CONTRIBUTING](CONTRIBUTING.md), auf Englisch).
+
 ## Funktionen
 
 - **Brücke S4 → Bluetooth FTMS:** Distanz, Schlagzahl, Schläge, Pace, Leistung, Kalorien, Zeit.
@@ -43,15 +70,11 @@ schlanker ohne Akku (**Light**) oder ohne Display und Akku (**Ultralight**).
 - **Handy als Display:** `http://<hostname>.local/anzeige` zeigt die Ansichten der Box im Vollbild
   auf dem Handy: Training, Kraftkurve, Taktgeber, Live-Kurve, Reise und Status, gewechselt durch
   Wischen nach links und rechts. Bei der Ultralight-Variante ist das dein Display. Die
-  Reise-Ansicht zeigt oben eine kleine 3D-Szene: einen Einer, dessen Ruderer im echten
-  Schlagrhythmus rudert (experimentell). Auf dem Rhein folgt der Fluss seinem echten Verlauf aus
-  OpenStreetMap, mit echtem Gelände, Brücken und Landmarken (Burgen, Dome, Loreley, Windmühlen)
-  und einer kleinen Karte; andere Strecken zeigen eine erzeugte Landschaft. Ist die Box online,
-  zeigt sie dazu das aktuelle Wetter an deiner virtuellen Position (Wolken, Regen, Schnee, Nebel,
-  Wind auf dem Wasser). Dafür schickt die Box diese Position, nicht deine, etwa alle 15 Minuten an
+  Reise-Ansicht zeigt den [Fluss in 3D](#den-rhein-in-3d-rudern). Für das Wetter schickt die Box
+  deine virtuelle Position auf der Strecke, nicht deine, etwa alle 15 Minuten an
   [Open-Meteo](https://open-meteo.com); abschalten kannst du das in den Einstellungen.
 
-  <p align="center"><img src="docs/phone_display.png" width="760" alt="Handy als Display: Training, Kraftkurve, Taktgeber und Reise"></p>
+  <p align="center"><img src="docs/phone_display.png" width="760" alt="Handy als Display: Training, Kraftkurve, Reise in 3D und Status"></p>
 
   <p align="center"><img src="docs/portal.png" width="760" alt="Webportal auf dem Handy: Live-Ansicht, Reise und Auswertung einer Einheit"></p>
   <p align="center"><sub>Webportal auf dem Handy: Live-Ansicht, Reise und die Auswertung einer Einheit.</sub></p>
@@ -67,7 +90,7 @@ schlanker ohne Akku (**Light**) oder ohne Display und Akku (**Ultralight**).
 - **Reise und Trophäen:** Jeder geruderte Meter bringt ein Boot auf einer echten Strecke voran
   (Ärmelkanal, Rhein, Themse, Seine, Po, Nil, Jangtse, Mississippi, Amazonas, Murray, der Onyx in
   der Antarktis oder über den Atlantik), dargestellt wie eine Navigation mit nächster Etappe,
-  Ziel und entspannt geschätzter Ankunft. Trophäen, etwa für die
+  Ziel und entspannt geschätzter Ankunft, auf dem Handy auch als [3D-Szene](#den-rhein-in-3d-rudern). Trophäen, etwa für die
   ersten 10 km oder eine Stunde am Stück, erscheinen nach der Einheit auf dem Display. Keine
   Serien, keine Fristen, nichts geht verloren; in den Einstellungen abschaltbar.
 - **Eigene Auswahl an Ansichten:** In den Einstellungen legst du fest, welche Ansichten die
