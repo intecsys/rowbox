@@ -44,7 +44,8 @@ PISUGAR_SOCK = "/tmp/pisugar-server.sock"
 DEFAULTS = {"led": "warn", "timeout": 120, "summary": 600, "hotspot": True, "sound": True,
             "password": None, "ssid": None,
             "mqtt_host": "", "mqtt_port": 1883, "mqtt_user": "", "mqtt_password": "",
-            "mqtt_topic": "rowbox", "anim": "pacer", "pacer_spm": 0, "views": None, "game": True}
+            "mqtt_topic": "rowbox", "anim": "pacer", "pacer_spm": 0, "views": None, "game": True,
+            "display": True}          # False: ohne Whisplay eingerichtet (setup.sh --no-display)
 # Ansichten, die man mit der Display-Taste durchblaettern kann (Automatik ist immer dabei).
 # Info bleibt immer an: dort steht das Passwort fuers Portal.
 VIEW_CHOICES = [("status", "Status"), ("training", "Training"), ("force", "Kraftkurve"),
@@ -515,7 +516,15 @@ def login_page(msg="", nxt="/", lang=None):
 <label class="dim">{L("Passwort", lang)}</label>
 <input name="password" type="password" autocomplete="current-password" autofocus>
 <button>{L("Anmelden", lang)}</button></form>
-<p class="dim">{L("Das Passwort steht auf dem Display der Box unter „Info“.", lang)}</p></div></main></body></html>"""
+<p class="dim">{pw_hint(lang)}</p></div></main></body></html>"""
+
+
+def pw_hint(lang=None):
+    """Wo das Passwort steht: auf dem Display oder, ohne Display, in der Einstellungsdatei."""
+    if load_conf().get("display", True):
+        return L("Das Passwort steht auf dem Display der Box unter „Info“.", lang)
+    return L("Das Passwort hat setup.sh am Ende angezeigt. Nachsehen per SSH: {cmd}", lang,
+             cmd="sudo grep password /etc/rowbox.json")
 
 
 def page(title, active, body, msg=""):
@@ -684,7 +693,7 @@ def wlan_page(wifi, msg=""):
 <label class="dim">{L("oder Name von Hand")}</label><input name="ssid_manual" placeholder="{L("z. B. MeinWLAN")}">
 <label class="dim">{L("Passwort")}</label><input name="password" type="password" autocomplete="off">
 <button>{L("Speichern und verbinden")}</button></form>
-<p class="dim">{L("Die Box trennt dabei die aktuelle Verbindung. Ob es geklappt hat, steht auf dem Display.")}</p></div>"""
+<p class="dim">{L("Die Box trennt dabei die aktuelle Verbindung. Nach etwa einer Minute ist sie im neuen Netz erreichbar; klappt es nicht, öffnet sie wieder ihren Hotspot.")}</p></div>"""
     return page(L("WLAN"), "/wlan", body, msg or (wifi.message if wifi.mode != "client" else ""))
 
 
@@ -953,9 +962,10 @@ def settings_page(conf, msg=""):
     lang = get_lang()
     lang_opts = "".join(f'<option value="{k}" {"selected" if k == lang else ""}>{v}</option>'
                         for k, v in LANGS.items())
-    body = f"""<form method="post" action="/einstellungen"><div class="card"><h2>{L("Anzeige")}</h2>
+    disp = conf.get("display", True)
+    body = f"""<form method="post" action="/einstellungen"><div class="card"><h2>{L("Anzeige") if disp else L("Sprache")}</h2>
 <label class="dim">Sprache · Language</label><select name="lang">{lang_opts}</select>
-<label class="dim">LED</label><select name="led">
+""" + (f"""<label class="dim">LED</label><select name="led">
 <option value="warn" {sel("led", "warn")}>{L("nur bei Problemen")}</option>
 <option value="on" {sel("led", "on")}>{L("immer Zustandsfarbe")}</option>
 <option value="off" {sel("led", "off")}>{L("aus")}</option></select>
@@ -970,15 +980,15 @@ def settings_page(conf, msg=""):
 <label class="dim">{L("Takt des Taktgebers (Schläge/min, 0 = eigener Rhythmus)")}</label>
 <input name="pacer_spm" type="number" min="0" max="40" value="{conf.get("pacer_spm", 0)}">
 <label class="dim">{L("Töne")}</label><select name="sound">
-<option value="1" {sel("sound", True)}>{L("an")}</option><option value="0" {sel("sound", False)}>{L("aus")}</option></select></div>
+<option value="1" {sel("sound", True)}>{L("an")}</option><option value="0" {sel("sound", False)}>{L("aus")}</option></select>""" if disp else "") + f"""</div>
 <div class="card"><h2>{L("Reise und Trophäen")}</h2>
 <label class="dim">{L("Anzeigen")}</label><select name="game">
 <option value="1" {sel("game", True)}>{L("an")}</option><option value="0" {sel("game", False)}>{L("aus")}</option></select>
 <label class="dim">{L("Strecke (ein Wechsel beginnt eine neue Reise bei 0 km)")}</label><select name="route">{route_opts()}</select></div>
-<div class="card"><h2>{L("Ansichten auf dem Display")}</h2>
+""" + (f"""<div class="card"><h2>{L("Ansichten auf dem Display")}</h2>
 <p class="dim">{L("Welche Ansichten die Display-Taste durchblättert. Die Automatik ist immer dabei, Info auch (dort steht das Passwort).")}</p>
 {view_checks(conf)}</div>
-<div class="card"><h2>{L("Hotspot")}</h2>
+""" if disp else "") + f"""<div class="card"><h2>{L("Hotspot")}</h2>
 <label class="dim">{L("Eigenen Hotspot starten, wenn kein WLAN da ist")}</label><select name="hotspot">
 <option value="1" {sel("hotspot", True)}>{L("ja")}</option><option value="0" {sel("hotspot", False)}>{L("nein")}</option></select>
 <label class="dim">{L("Name")}</label><input name="ssid" value="{e(conf["ssid"])}" maxlength="32">
@@ -993,9 +1003,9 @@ def settings_page(conf, msg=""):
 <label class="dim">{L("Topic")}</label><input name="mqtt_topic" value="{e(conf["mqtt_topic"])}" maxlength="60">
 <p class="dim">{L("Zustand: {s}", s=e(mqtt_status()))}</p></div>
 <button>{L("Speichern")}</button></form>
-<div class="card"><h2>{L("Einrichtung")}</h2><form method="post" action="/aktion">
+""" + (f"""<div class="card"><h2>{L("Einrichtung")}</h2><form method="post" action="/aktion">
 <p class="dim">{L("Startet den Assistenten auf dem Display neu, zum Beispiel um übersprungene Schritte nachzuholen.")}</p>
-<button class="sec" name="do" value="wizard">{L("Einrichtungsassistent neu starten")}</button></form></div>"""
+<button class="sec" name="do" value="wizard">{L("Einrichtungsassistent neu starten")}</button></form></div>""" if disp else "")
     return page(L("Einstellungen"), "/einstellungen", body, msg)
 
 
@@ -1269,7 +1279,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(wlan_page(wifi, L("Das Passwort muss 8 bis 63 Zeichen haben.")))
             threading.Thread(target=wifi.connect, args=(ssid, pw), daemon=True).start()
             return self.send(page(L("WLAN"), "/wlan", f"""<div class="card"><h2>{L("Verbinde mit {ssid}", ssid=e(ssid))}</h2>
-<p>{L("Die Box trennt jetzt die bisherige Verbindung und wählt sich neu ein. Das Ergebnis steht in etwa einer Minute auf dem Display. Klappt es, ist die Box danach unter <b>{url}</b> im neuen Netz erreichbar. Klappt es nicht, öffnet sie wieder ihren Hotspot.", url=f"http://{HOST}")}</p></div>"""))
+<p>{L("Die Box trennt jetzt die bisherige Verbindung und wählt sich neu ein. Das dauert etwa eine Minute. Klappt es, ist die Box danach unter <b>{url}</b> im neuen Netz erreichbar. Klappt es nicht, öffnet sie wieder ihren Hotspot.", url=f"http://{HOST}")}</p></div>"""))
         if path in ("/wlan/loeschen", "/wlan/gespeichert"):
             name = f.get("name", "")
             known = {n["name"]: n["ssid"] for n in saved_networks()}
@@ -1278,7 +1288,7 @@ class Handler(BaseHTTPRequestHandler):
             if f.get("do") == "connect":
                 threading.Thread(target=wifi.connect_saved, args=(name, known[name]), daemon=True).start()
                 return self.send(page(L("WLAN"), "/wlan", f"""<div class="card"><h2>{L("Verbinde mit {ssid}", ssid=e(known[name]))}</h2>
-<p>{L("Die Box trennt jetzt die bisherige Verbindung und wählt sich neu ein. Das Ergebnis steht in etwa einer Minute auf dem Display. Klappt es, ist die Box danach unter <b>{url}</b> im neuen Netz erreichbar. Klappt es nicht, öffnet sie wieder ihren Hotspot.", url=f"http://{HOST}")}</p></div>"""))
+<p>{L("Die Box trennt jetzt die bisherige Verbindung und wählt sich neu ein. Das dauert etwa eine Minute. Klappt es, ist die Box danach unter <b>{url}</b> im neuen Netz erreichbar. Klappt es nicht, öffnet sie wieder ihren Hotspot.", url=f"http://{HOST}")}</p></div>"""))
             nm("connection", "delete", name)
             return self.redirect("/wlan")
         if path == "/einstellungen":
@@ -1301,6 +1311,9 @@ class Handler(BaseHTTPRequestHandler):
                        "mqtt_topic": re.sub(r"[^A-Za-z0-9_/-]", "", f.get("mqtt_topic") or "rowbox")[:60] or "rowbox"}
             except ValueError:
                 return self.send(settings_page(conf, L("Bitte nur Zahlen bei den Sekunden.")))
+            if not conf.get("display", True):           # Felder fuers Display fehlen im Formular
+                for k in ("led", "timeout", "summary", "sound", "anim", "pacer_spm", "views"):
+                    new[k] = conf.get(k, DEFAULTS[k])
             if not 8 <= len(new["password"]) <= 63:
                 return self.send(settings_page(conf, L("Das Passwort muss 8 bis 63 Zeichen haben.")))
             if f.get("lang") in LANGS:

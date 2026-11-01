@@ -118,6 +118,21 @@ Stromanschluss.
    `setup.sh` spricht je nach Systemsprache Deutsch oder Englisch; festlegen lässt es sich mit
    `sudo bash rowbox/setup.sh --lang de` (oder `--lang en`).
 
+### Minimal-Aufbau ohne Display und Akku (experimentell)
+
+Die Rowbox läuft auch nur mit Raspberry Pi Zero 2 W, USB-Kabel und Netzteil oder Powerbank. Es
+bleiben Bluetooth-Brücke, Kraftkurve, Logbuch, FIT/TCX-Export, Reisen und das Webportal; es fehlen
+Display, Taktgeber, Töne, Akkuanzeige und Ausschalttaste (Ausschalten im Portal).
+
+```sh
+sudo bash rowbox/setup.sh --no-display --no-pisugar
+```
+
+Ohne Display gibt es keinen Einrichtungsassistenten: `setup.sh` zeigt am Ende das Passwort fürs
+Portal und den Namen des Hotspots (später nachsehen mit `sudo grep password /etc/rowbox.json`).
+Beide Optionen gehen auch einzeln, zum Beispiel `--no-pisugar` mit Whisplay an einer Powerbank.
+Noch nicht an einer echten Box getestet, Rückmeldungen willkommen.
+
 ## Benutzung
 
 1. S4 einschalten und mit der Box verbinden.

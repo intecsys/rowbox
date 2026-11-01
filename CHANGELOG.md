@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+- Minimal build: `setup.sh --no-display` (no Whisplay) and `--no-pisugar` (power bank); without display, setup prints the portal password and the portal hides display settings (experimental)
+- Wi-Fi messages in the portal no longer refer to the display
+
 ## 2.2
 - The S4's model and firmware version are read on connect and shown in the portal status, on the display's Info screen and in the bridge log (helps with bug reports)
 - Log tabs in the portal are translated (Bridge, Display, Portal, Wi-Fi); old links keep working

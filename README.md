@@ -115,6 +115,21 @@ The S4 goes into the **inner** Micro-USB port of the Zero (labelled USB), not th
    `setup.sh` speaks German or English depending on the system language; force one with
    `sudo bash rowbox/setup.sh --lang en` (or `--lang de`).
 
+### Minimal build without display or battery (experimental)
+
+Rowbox also runs on just a Raspberry Pi Zero 2 W, a USB cable and a power supply or power bank.
+You keep the Bluetooth bridge, force curve, logbook, FIT/TCX export, journeys and the web portal;
+you lose the display, pacer, sounds, battery level and the power button (shut down in the portal).
+
+```sh
+sudo bash rowbox/setup.sh --no-display --no-pisugar
+```
+
+There is no setup assistant without a display: `setup.sh` prints the portal password and the
+hotspot name at the end (look it up later with `sudo grep password /etc/rowbox.json`). Both
+options can be used on their own, e.g. `--no-pisugar` with the Whisplay on a power bank.
+Not yet tested on a real box, feedback welcome.
+
 ## Usage
 
 1. Switch on the S4 and connect it to the box.
