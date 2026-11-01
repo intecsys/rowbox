@@ -19,6 +19,7 @@
 - Phone display, 3D view: new single scull and rower: 8 m hull with pointed bow and stern, deck, cockpit, orange stripe, wing rigger, oars with grip, collar and hatchet blade; the rower has legs, arms and hands on the handles (two-bone joints), feet on the footstretcher, knees rise on the slide, layback at the finish
 - Phone display, 3D view: clouds that follow the real cloud cover (none to overcast), drift with the wind and take their colour from time of day and weather (white, rain grey, lit by the evening sun, dark at night)
 - Phone display, journey: a live card under the 3D view with pace, stroke rate and watts; the route list leaves out the next stop (it is in the stage card), the destination takes one line, and on short screens the list is dropped instead of being cut off
+- Settings → Journey: choose which parts the phone's journey screen shows (3D view, live values, next stage, places, destination, small map, weather label) and pick the colours of the scull, the blades and the rower's shirt
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2

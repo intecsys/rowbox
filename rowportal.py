@@ -48,7 +48,14 @@ DEFAULTS = {"led": "warn", "timeout": 120, "summary": 600, "hotspot": True, "sou
             "mqtt_host": "", "mqtt_port": 1883, "mqtt_user": "", "mqtt_password": "",
             "mqtt_topic": "rowbox", "anim": "pacer", "pacer_spm": 0, "views": None, "game": True,
             "display": True,          # False: ohne Whisplay eingerichtet (setup.sh --no-display)
-            "weather": True}          # echtes Wetter an der virtuellen Position (nur wenn die Box online ist)
+            "weather": True,          # echtes Wetter an der virtuellen Position (nur wenn die Box online ist)
+            "journey_show": None,     # None = alle Elemente der Reise-Ansicht auf dem Handy
+            "boat_hull": "#f4f4f0", "boat_blade": "#ff5a1f", "boat_shirt": "#ff5a1f"}
+# Elemente der Reise-Ansicht auf dem Handy, einzeln abschaltbar
+JOURNEY_PARTS = [("scene", "3D-Ansicht"), ("live", "Live-Werte (Pace, Schläge, Watt)"), ("stage", "Nächste Etappe"),
+                 ("list", "Orte auf der Strecke"), ("goal", "Ziel"), ("map", "Kleine Karte in der 3D-Ansicht"),
+                 ("weather", "Wetter-Schild in der 3D-Ansicht")]
+COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 # Ansichten, die man mit der Display-Taste durchblaettern kann (Automatik ist immer dabei).
 # Info bleibt immer an: dort steht das Passwort fuers Portal.
 VIEW_CHOICES = [("status", "Status"), ("training", "Training"), ("force", "Kraftkurve"),
@@ -850,7 +857,13 @@ async function slow(){
   let li=R3?[]:past.slice(-1).map(s=>'<li class="past">'+esc(s[1])+'<span>'+kmf(g.km-s[0])+' km</span></li>');
   if(!g.done)li.push('<li class="here">'+esc(T.here)+'<span></span></li>');
   li=li.concat(ahead.slice(R3?1:0,R3?3:5).map(s=>'<li>'+esc(s[1])+'<span>'+kmf(s[0]-g.km)+' km</span></li>'));
-  $('jr-route').innerHTML=li.join('');fitRoute();
+  $('jr-route').innerHTML=li.join('');
+  // Elemente nach den Einstellungen ein- und ausblenden (Portal → Einstellungen → Reise)
+  const show=g.show||[];JSHOW=show;
+  for(const[k,id]of[['live','jr-live'],['stage','jr-stage'],['goal','jr-goalbox']]){const el=$(id);if(el)el.style.display=show.includes(k)?'':'none'}
+  const sc=$('jr-3d');if(sc)sc.style.display=show.includes('scene')?'':'none';
+  $('jr-grow').style.display=show.includes('list')?'':'none';
+  if(show.includes('list'))fitRoute();if(typeof scene3d=='function')scene3d();
   $('jr-bar').style.width=Math.min(100,g.km/g.total*100).toFixed(1)+'%';
   $('jr-prog').textContent=kmf(g.km)+' / '+kmf(g.total)+' km';
   G=g;river()
@@ -884,9 +897,9 @@ function river(){
  svg.innerHTML=out}
 addEventListener('resize',river);
 window.rowboxState=()=>({S,W,G});
-var R3=null,R3try=false;
+var R3=null,R3try=false,JSHOW=null;
 function scene3d(){
- const on=slides[cur]&&slides[cur].id=='journey'&&!document.hidden;
+ const on=slides[cur]&&slides[cur].id=='journey'&&!document.hidden&&(!JSHOW||JSHOW.includes('scene'));
  if(on&&!R3try){R3try=true;import('/static/river3d.js').then(m=>{R3=m.start($('jr-3d'),window.rowboxState);
    if(!R3)$('jr-3d').remove();else{R3.run(true);if(G)slow()}}).catch(()=>{const e=$('jr-3d');if(e)e.remove()})}
  if(R3)R3.run(on);
@@ -958,12 +971,12 @@ def screen_page():
 <div class="jhead"><div class="big" id="jr-river">{L("Reise")}</div><span id="jr-prog"></span></div>
 <div class="prog"><i id="jr-bar" style="width:0"></i></div>
 <div class="scene" id="jr-3d"></div>
-<div class="navc live3"><div><b id="jl-pace">–</b><span>/500 m</span></div>
+<div class="navc live3" id="jr-live"><div><b id="jl-pace">–</b><span>/500 m</span></div>
 <div><b id="jl-spm">0</b><span>{L("Schläge/min")}</span></div><div><b id="jl-w">0</b><span>{L("Watt")}</span></div></div>
-<div class="navc"><div class="lab">{L("Nächste Etappe")}</div><div class="big" id="jr-next">…</div>
+<div class="navc" id="jr-stage"><div class="lab">{L("Nächste Etappe")}</div><div class="big" id="jr-next">…</div>
 <div class="r2"><span><span id="jr-nkm"></span> km</span><span class="warn" id="jr-neta"></span></div></div>
-<div class="grow"><svg id="jr-svg"></svg><ul class="route" id="jr-route"></ul></div>
-<div class="goal"><div class="r2"><span><span class="lab">{L("Ziel")}</span> <b id="jr-goal"></b></span><span id="jr-gkm"></span></div>
+<div class="grow" id="jr-grow"><svg id="jr-svg"></svg><ul class="route" id="jr-route"></ul></div>
+<div class="goal" id="jr-goalbox"><div class="r2"><span><span class="lab">{L("Ziel")}</span> <b id="jr-goal"></b></span><span id="jr-gkm"></span></div>
 <div class="lab" id="jr-geta"></div></div></div></section>""" if game else ""
     body = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -1102,6 +1115,8 @@ def screen_json():
                           "km": st["km"], "total": st["total"], "stops": [[k, n] for k, n in st["stops"]]}
         if conf.get("weather", True):
             out["journey"]["weather"] = weather_for(st["route"], st["km"])
+        out["journey"]["show"] = conf.get("journey_show") or [k for k, _ in JOURNEY_PARTS]
+        out["journey"]["look"] = {k[5:]: conf.get(k) or DEFAULTS[k] for k in ("boat_hull", "boat_blade", "boat_shirt")}
     return json.dumps(out)
 
 
@@ -1438,6 +1453,19 @@ def route_opts():
     return "".join(out)
 
 
+def journey_checks(conf):
+    on = conf.get("journey_show") or [k for k, _ in JOURNEY_PARTS]
+    return "".join(f'<label style="display:flex;gap:10px;align-items:center;margin:6px 0">'
+                   f'<input type="checkbox" name="j_{k}" value="1" style="width:auto;margin:0" '
+                   f'{"checked" if k in on else ""}>{L(name)}</label>' for k, name in JOURNEY_PARTS)
+
+
+def color_field(key, label, conf):
+    val = conf.get(key) or DEFAULTS[key]
+    return (f'<label class="dim" style="display:flex;flex-direction:column;gap:2px">{label}'
+            f'<input type="color" name="{key}" value="{e(val)}" style="height:44px;padding:3px;margin:4px 0 8px"></label>')
+
+
 def view_checks(conf):
     on = conf.get("views") or [k for k, _ in VIEW_CHOICES]
     rows = []
@@ -1478,7 +1506,12 @@ def settings_page(conf, msg=""):
 <option value="1" {sel("game", True)}>{L("an")}</option><option value="0" {sel("game", False)}>{L("aus")}</option></select>
 <label class="dim">{L("Strecke (ein Wechsel beginnt eine neue Reise bei 0 km)")}</label><select name="route">{route_opts()}</select>
 <label class="dim">{L("Echtes Wetter in der 3D-Ansicht (holt die Box bei Open-Meteo, wenn sie online ist)")}</label><select name="weather">
-<option value="1" {sel("weather", True)}>{L("an")}</option><option value="0" {sel("weather", False)}>{L("aus")}</option></select></div>
+<option value="1" {sel("weather", True)}>{L("an")}</option><option value="0" {sel("weather", False)}>{L("aus")}</option></select>
+<h3 style="font-size:14px;margin:14px 0 4px">{L("Reise-Ansicht auf dem Handy")}</h3>
+<p class="dim" style="margin:0 0 4px;font-size:13px">{L("Welche Elemente die Reise-Ansicht zeigt.")}</p>
+{journey_checks(conf)}
+<h3 style="font-size:14px;margin:14px 0 4px">{L("Farben im 3D-Boot")}</h3>
+<div class="row colors">{color_field("boat_hull", L("Skiff"), conf)}{color_field("boat_blade", L("Ruderblätter"), conf)}{color_field("boat_shirt", L("Trikot"), conf)}</div></div>
 """ + (f"""<div class="card"><h2>{L("Ansichten auf dem Display")}</h2>
 <p class="dim">{L("Welche Ansichten die Display-Taste durchblättert. Die Automatik ist immer dabei, Info auch (dort steht das Passwort).")}</p>
 {view_checks(conf)}</div>
@@ -1837,6 +1870,9 @@ class Handler(BaseHTTPRequestHandler):
                        "views": [k for k, _ in VIEW_CHOICES if k == "info" or f.get("v_" + k)],
                        "game": f.get("game", "1") == "1",
                        "weather": f.get("weather", "1") == "1",
+                       "journey_show": [k for k, _ in JOURNEY_PARTS if f.get("j_" + k)],
+                       **{k: (f.get(k) if COLOR.match(f.get(k) or "") else DEFAULTS[k]).lower()
+                          for k in ("boat_hull", "boat_blade", "boat_shirt")},
                        "ssid": (f.get("ssid") or conf["ssid"]).strip()[:32],
                        "password": f.get("password") or conf["password"],
                        "mqtt_host": (f.get("mqtt_host") or "").strip()[:100],

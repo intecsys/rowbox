@@ -189,7 +189,8 @@ export function start(el, state) {
     if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82) || c >= 95) return "rain";
     return "";
   }
-  let skyAt = -1e9, skyLL = null;                            // wo der Himmel zuletzt berechnet wurde
+  let skyAt = -1e9, skyLL = null, SHOW = null, lookKey = "";
+  const wants = k => !SHOW || SHOW.includes(k);                            // wo der Himmel zuletzt berechnet wurde
   function sky() {
     // Echter Sonnenstand am Ort auf der Strecke (ohne Kartendaten: Mitteleuropa)
     const ll = skyLL || [50.1, 7.7];
@@ -229,6 +230,7 @@ export function start(el, state) {
   const mat = c => new THREE.MeshLambertMaterial({ color: c });
   const white = mat(0xf4f4f0), orange = mat(0xff5a1f), dark = mat(0x23272e), carbon = mat(0x2b2f36);
   const skin = mat(0xe2b08f), shorts = mat(0x1d2230), metal = mat(0xb9bec6), grip = mat(0x3a3d42);
+  const hullMat = mat(0xf4f4f0), shirt = mat(0xff5a1f);      // Farben aus den Einstellungen (Portal)
   const boat = new THREE.Group();
   const BOW = -4.6, STERN = 3.4, HALF = 0.17;
   const width = t => HALF * Math.pow(Math.sin(Math.PI * t), 0.55);           // t = 0 Bug ... 1 Heck
@@ -252,8 +254,8 @@ export function start(el, state) {
     g.computeVertexNormals();
     return g;
   }
-  boat.add(new THREE.Mesh(hullGeo(false), white));
-  const deck = new THREE.Mesh(hullGeo(true), mat(0xe9ebee));
+  boat.add(new THREE.Mesh(hullGeo(false), hullMat));
+  const deck = new THREE.Mesh(hullGeo(true), hullMat);
   boat.add(deck);
   // Cockpit: helle Flaeche um den Rollsitz, Waschbord vorne
   const cockpit = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 1.7), carbon);
@@ -347,11 +349,11 @@ export function start(el, state) {
     return a.clone().addScaledVector(dir, along).addScaledVector(perp, h);
   }
   const body = {
-    pelvis: ball(0.13, shorts), torso: part(0.15, 0.18, orange), chest: ball(0.17, orange), neck: part(0.05, 0.05, skin),
+    pelvis: ball(0.13, shorts), torso: part(0.15, 0.18, shirt), chest: ball(0.17, shirt), neck: part(0.05, 0.05, skin),
     head: ball(0.11, skin), cap: ball(0.112, white),
     thigh: [part(0.075, 0.06, shorts), part(0.075, 0.06, shorts)], shin: [part(0.055, 0.045, skin), part(0.055, 0.045, skin)],
     foot: [part(0.045, 0.04, white), part(0.045, 0.04, white)], knee: [ball(0.06, skin), ball(0.06, skin)],
-    upper: [part(0.05, 0.042, orange), part(0.05, 0.042, orange)], fore: [part(0.04, 0.032, skin), part(0.04, 0.032, skin)],
+    upper: [part(0.05, 0.042, shirt), part(0.05, 0.042, shirt)], fore: [part(0.04, 0.032, skin), part(0.04, 0.032, skin)],
     elbow: [ball(0.045, skin), ball(0.045, skin)], hand: [ball(0.04, skin), ball(0.04, skin)],
   };
   body.cap.scale.set(1, 0.6, 1);
@@ -756,7 +758,8 @@ export function start(el, state) {
   let mapAt = 0;
   function minimap(x, z, fx, fz) {
     const show = !!path.real;
-    map.style.display = credit.style.display = show ? "block" : "none";
+    credit.style.display = show ? "block" : "none";
+    map.style.display = show && wants("map") ? "block" : "none";
     if (!show) return;
     credit.textContent = path.attribution || "© OpenStreetMap";
     const dpr = Math.min(window.devicePixelRatio || 1, 2), W = 84 * dpr, R = 7000, k = (W / 2 - 8 * dpr) / R;
@@ -903,11 +906,21 @@ export function start(el, state) {
       camera.updateProjectionMatrix();
     }
     if (Math.abs(pos - skyAt) > 20000) { skyAt = pos; skyLL = path.latlon ? path.latlon(pos) : null; sky(); }
-    const wk = JSON.stringify(G.weather || null);
+    SHOW = G.show || null;
+    const lk = JSON.stringify(G.look || null);
+    if (lk !== lookKey) {                              // Farben von Skiff, Blaettern und Trikot
+      lookKey = lk;
+      const L = G.look || {};
+      hullMat.color.set(L.hull || "#f4f4f0");
+      bladeMat.color.set(L.blade || "#ff5a1f"); stripe.material.color.set(L.blade || "#ff5a1f");
+      shirt.color.set(L.shirt || "#ff5a1f");
+      wxKey = "";                                      // Schild neu bewerten (falls abgeschaltet)
+    }
+    const wk = JSON.stringify(G.weather || null) + (wants("weather") ? "" : "-");
     if (wk !== wxKey) {
       wxKey = wk; WX = G.weather || null; sky();
       wxLabel.textContent = (WX && WX.label) || "";
-      wxLabel.style.display = WX && WX.label ? "block" : "none";
+      wxLabel.style.display = WX && WX.label && wants("weather") ? "block" : "none";
       const w = WX && WX.wind != null ? WX.wind : 2;
       waterMat.normalScale.setScalar(Math.min(0.6, 0.14 + w * 0.045));
     }
