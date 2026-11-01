@@ -173,6 +173,10 @@ rowportal.py: Webportal auf Port 80, Hotspot als Rückfall, Einstellungen in /et
 - [OpenRowingMonitor](https://github.com/JaapvanEkris/openrowingmonitor): Rudermonitor mit eigenem Sensor am Schwungrad
 - [ESP Rowing Monitor](https://github.com/Abasz/ESPRowingMonitor): dasselbe auf einem ESP32
 
+## Mitmachen
+
+Fehlermeldungen, Ideen und Pull Requests sind willkommen, siehe [CONTRIBUTING.md](CONTRIBUTING.md) (Englisch).
+
 ## Lizenz
 
 GPL-3.0-or-later, siehe [LICENSE](LICENSE). Du darfst Rowbox frei nutzen, ändern und weitergeben,

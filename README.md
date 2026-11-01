@@ -173,6 +173,10 @@ and in several open source projects.
 - [OpenRowingMonitor](https://github.com/JaapvanEkris/openrowingmonitor): rowing monitor with its own flywheel sensor
 - [ESP Rowing Monitor](https://github.com/Abasz/ESPRowingMonitor): the same on an ESP32
 
+## Contributing
+
+Issues, ideas and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 GPL-3.0-or-later, see [LICENSE](LICENSE). You may use, change and share Rowbox freely, also
