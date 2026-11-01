@@ -447,7 +447,7 @@ def e(x):
 
 CSS = """
 :root{--chassis:#e4e4df;--panel:#f4f4f1;--ink:#000;--mute:#7d7d77;--rule:#cfcfc8;--key:#fbfbf9;
---signal:#ff5a1f;--wait:#3d5afe;--sans:"Helvetica Neue",Helvetica,Arial,"Nimbus Sans","Liberation Sans",sans-serif}
+--signal:#ff5a1f;--wait:#468cff;--good:#2fb463;--bad:#e5463c;--sans:"Helvetica Neue",Helvetica,Arial,"Nimbus Sans","Liberation Sans",sans-serif}
 @media (prefers-color-scheme:dark){:root{--chassis:#000;--panel:#161615;--ink:#f2f2ee;--mute:#8d8d86;
 --rule:#2c2c2a;--key:#202020}}
 *{box-sizing:border-box}
@@ -464,7 +464,7 @@ header{max-width:760px;margin:auto;padding:18px 16px 6px}
 .leds{display:flex;gap:12px;font-size:11px;color:var(--mute)}
 .leds span{display:flex;align-items:center;gap:5px}
 .led{width:8px;height:8px;border-radius:50%;background:var(--rule);display:inline-block}
-.led.on{background:var(--ink)}.led.wait{background:var(--wait)}.led.off{background:var(--signal)}
+.led.on{background:var(--good)}.led.wait{background:var(--wait)}.led.off{background:var(--bad)}
 nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;margin-top:16px}
 nav a{display:flex;align-items:flex-end;height:46px;padding:6px 9px;border:1.5px solid var(--ink);
 border-radius:7px;background:var(--key);color:var(--ink);text-decoration:none;font-size:13px;font-weight:500;
@@ -480,10 +480,11 @@ td,th{padding:8px 2px;text-align:left;border-top:1px solid var(--rule)}
 tr:first-child td,tr:first-child th{border-top:0}
 th{color:var(--mute);font-weight:500;font-size:13px}.r{text-align:right;white-space:nowrap}
 @media (max-width:480px){td,th{font-size:14px;padding:7px 2px}}
-.ok{color:var(--ink)}.bad{color:var(--signal)}.dim{color:var(--mute)}
-td.ok::before,td.bad::before,td.dim::before{content:"";display:inline-block;width:8px;height:8px;
-border-radius:50%;margin-right:8px;vertical-align:1px;background:currentColor}
-td.dim::before{background:var(--wait)}
+.ok{color:var(--ink)}.bad{color:var(--bad)}.dim{color:var(--mute)}
+/* Statuspunkte wie auf dem Display: gruen = ok, rot = Problem, blau = wartet */
+td.ok::before,td.bad::before,td.dim::before{content:"";display:inline-block;width:9px;height:9px;
+border-radius:50%;margin-right:8px;vertical-align:0;background:var(--good)}
+td.bad::before{background:var(--bad)}td.dim::before{background:var(--wait)}
 a{color:var(--ink);text-decoration-color:var(--signal);text-decoration-thickness:2px;text-underline-offset:3px}
 label{font-size:13px}
 input,select,button{font:inherit;font-size:15px;padding:10px 12px;border-radius:6px;border:1.5px solid var(--rule);
@@ -570,8 +571,9 @@ def status_page(wifi):
         cls = "ok" if ok is True else ("dim" if ok is None else "bad")
         return f'<tr><td>{k}</td><td class="r {cls}">{e(v)}</td></tr>'
     rows = (line(L("Brücke"), fresh, L("läuft") if fresh else L("aus"))
-            + line("S4", bool(s.get("s4")), (L("verbunden") + (f" · {L('Firmware')} {s['s4_fw'].split(' ')[-1]}"
-                                                                 if s.get("s4_fw") else "")) if s.get("s4") else L("nicht verbunden"))
+            + line("S4", bool(s.get("s4")), L("verbunden") if s.get("s4") else L("nicht verbunden"))
+            + (f'<tr><td>{L("S4-Firmware")}</td><td class="r">{e(s["s4_fw"].split(" ")[-1])}</td></tr>'
+               if s.get("s4") and s.get("s4_fw") else "")
             + line("App", True if s.get("app") else None, L("verbunden") if s.get("app") else L("wartet"))
             + line(L("WLAN"), st == "connected", con if con else L("keins"))
             + line(L("Akku"), b is not None and b > 15, f"{b} %" if b is not None else L("unbekannt")))
@@ -631,7 +633,7 @@ LIVE_CSS = """
 font-variant-numeric:tabular-nums}
 .tile .u{color:var(--mute);font-size:16px;margin-left:6px}
 .big{grid-column:1/-1}.big .v{font-size:clamp(64px,20vw,140px)}
-#state{font-size:15px;font-weight:600;margin:4px 0 10px}#state.ok{color:var(--ink)}#state.dim{color:var(--signal)}
+#state{font-size:15px;font-weight:600;margin:4px 0 10px}#state.ok{color:var(--good)}#state.dim{color:var(--wait)}
 .curve svg{width:100%;height:auto;display:block;color:var(--ink)}
 .nums{display:flex;gap:10px;margin-top:10px;border-top:1px solid var(--rule);padding-top:10px}.nums div{flex:1}
 .nums b{display:block;font-size:28px;font-weight:300;font-variant-numeric:tabular-nums}
