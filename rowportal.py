@@ -700,6 +700,13 @@ align-items:center;justify-content:center;padding:52px 20px calc(60px + env(safe
 svg,canvas{width:100%;display:block;margin-top:18px}
 .navc{background:var(--card);border-radius:16px;padding:16px 18px;text-align:left;margin-top:14px}
 .navc .big{font-size:clamp(30px,10vw,52px)}
+/* Reise: drei Live-Werte in einer Karte, so gross wie die Etappenkarte */
+.live3{display:grid;grid-template-columns:repeat(3,1fr);padding:14px 4px;text-align:center}
+.live3>div+div{border-left:1px solid var(--line)}
+.live3 b{display:block;font-weight:800;font-size:clamp(26px,min(8.5vw,5.2vh),46px);line-height:1.1;font-variant-numeric:tabular-nums}
+.live3 span{color:var(--dim);font-size:clamp(12px,3.3vw,15px)}
+#journey .navc{margin-top:10px}#journey .goal{margin-top:8px}#journey .goal .r2{font-size:clamp(18px,5.5vw,26px)}
+#journey .goal .lab{font-weight:400}
 .r2{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:clamp(22px,7vw,34px)}
 .goal{text-align:left;margin-top:16px;padding:0 4px}
 .goal b{font-size:clamp(22px,7vw,34px)}
@@ -809,6 +816,7 @@ async function live(){
  de.style.fontSize=dt.length>4?'min('+(128/dt.length).toFixed(1)+'vw,'+(80/dt.length).toFixed(1)+'vh,210px)':'';
  const tm=mmss(S.elapsed);$('tr-time').textContent=tm;$('tr-time').style.fontSize=tm.length>5?'min('+(70/tm.length).toFixed(1)+'vw,'+(42/tm.length).toFixed(1)+'vh,84px)':'';$('tr-spm').textContent=S.spm||0;$('tr-w').textContent=S.watts||0;
  $('tr-pace').textContent=S.pace?mmss(S.pace):'–';
+ if($('jl-pace')){$('jl-pace').textContent=S.active&&S.pace?mmss(S.pace):'–';$('jl-spm').textContent=S.active?S.spm||0:0;$('jl-w').textContent=S.active?S.watts||0:0}
  $('tr-pause').style.display=pause?'':'none';$('tr-row').style.display=pause?'none':'';
  if(pause)$('tr-left').textContent=mmss(S.pause_left);
  if(S.curve&&S.stroke_n!==lastN){lastN=S.stroke_n;hist.push(S.curve);if(hist.length>5)hist.shift();
@@ -834,13 +842,14 @@ async function slow(){
   const g=j.journey;if(!g){$('journey').remove();return}
   $('jr-river').textContent=g.river;$('jr-next').textContent=g.done?g.goal:g.next;
   $('jr-nkm').textContent=g.done?T.done:g.next_left;$('jr-neta').textContent=g.done?'':g.eta_next;
-  $('jr-goal').textContent=g.goal;$('jr-gkm').textContent=g.left+' km';$('jr-geta').textContent=g.eta_goal;
+  $('jr-goal').textContent=g.goal;$('jr-gkm').textContent=g.left+' km';$('jr-geta').textContent=g.eta_goal=='–'?'':g.eta_goal;
   const kmf=d=>d.toLocaleString(T.locale,{maximumFractionDigits:d<10?1:0});
   const past=g.stops.filter(s=>s[0]<=g.km),ahead=g.stops.filter(s=>s[0]>g.km);
   const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  let li=past.slice(-1).map(s=>'<li class="past">'+esc(s[1])+'<span>'+kmf(g.km-s[0])+' km</span></li>');
+  // mit 3D-Ansicht knapp: die naechste Etappe steht schon in der Karte, also nur die zwei danach
+  let li=R3?[]:past.slice(-1).map(s=>'<li class="past">'+esc(s[1])+'<span>'+kmf(g.km-s[0])+' km</span></li>');
   if(!g.done)li.push('<li class="here">'+esc(T.here)+'<span></span></li>');
-  li=li.concat(ahead.slice(0,R3?3:5).map(s=>'<li>'+esc(s[1])+'<span>'+kmf(s[0]-g.km)+' km</span></li>'));
+  li=li.concat(ahead.slice(R3?1:0,R3?3:5).map(s=>'<li>'+esc(s[1])+'<span>'+kmf(s[0]-g.km)+' km</span></li>'));
   $('jr-route').innerHTML=li.join('');fitRoute();
   $('jr-bar').style.width=Math.min(100,g.km/g.total*100).toFixed(1)+'%';
   $('jr-prog').textContent=kmf(g.km)+' / '+kmf(g.total)+' km';
@@ -848,8 +857,9 @@ async function slow(){
  }catch(e){}
 }
 // Liste so kuerzen, dass sie nicht ueber das Ziel laeuft (kleine Bildschirme, Browserleisten)
-function fitRoute(){const ul=$('jr-route');if(!ul)return;
- while(ul.children.length>2&&ul.scrollHeight>ul.clientHeight+2)ul.lastElementChild.remove()}
+function fitRoute(){const ul=$('jr-route');if(!ul)return;const gr=ul.parentNode;gr.style.visibility='';
+ while(ul.children.length&&ul.scrollHeight>ul.clientHeight+2)ul.lastElementChild.remove();
+ if(!ul.children.length||ul.clientHeight<40)gr.style.visibility='hidden'}   // zu eng: Liste ganz weglassen
 // Fluss als geschwungene Linie, Orte als Bojen, das Boot bei "Du bist hier"
 let G=null;
 function river(){
@@ -948,10 +958,12 @@ def screen_page():
 <div class="jhead"><div class="big" id="jr-river">{L("Reise")}</div><span id="jr-prog"></span></div>
 <div class="prog"><i id="jr-bar" style="width:0"></i></div>
 <div class="scene" id="jr-3d"></div>
+<div class="navc live3"><div><b id="jl-pace">–</b><span>/500 m</span></div>
+<div><b id="jl-spm">0</b><span>{L("Schläge/min")}</span></div><div><b id="jl-w">0</b><span>{L("Watt")}</span></div></div>
 <div class="navc"><div class="lab">{L("Nächste Etappe")}</div><div class="big" id="jr-next">…</div>
 <div class="r2"><span><span id="jr-nkm"></span> km</span><span class="warn" id="jr-neta"></span></div></div>
 <div class="grow"><svg id="jr-svg"></svg><ul class="route" id="jr-route"></ul></div>
-<div class="goal"><div class="lab">{L("Ziel")}</div><div class="r2"><b id="jr-goal"></b><span id="jr-gkm"></span></div>
+<div class="goal"><div class="r2"><span><span class="lab">{L("Ziel")}</span> <b id="jr-goal"></b></span><span id="jr-gkm"></span></div>
 <div class="lab" id="jr-geta"></div></div></div></section>""" if game else ""
     body = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
