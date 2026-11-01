@@ -127,6 +127,57 @@ export function start(el, state) {
   const skyDome = new THREE.Mesh(new THREE.SphereGeometry(2800, 24, 12), skyMat);
   skyDome.renderOrder = -1;
   scene.add(skyDome);
+  // Wolken: weiche Billboards in 140-360 m Hoehe um die Kamera (tief genug, dass man sie im flachen Bild sieht); Menge nach Bewoelkung, Farbe nach
+  // Tageszeit und Wetter, sie ziehen mit dem Wind.
+  const clouds = (() => {
+    const tex = [0, 1, 2].map(k => {
+      const cv = document.createElement("canvas"), W = 256, H = 128, c = cv.getContext("2d"), r = rng(31 + k * 17);
+      cv.width = W; cv.height = H;
+      for (let i = 0; i < 26; i++) {                 // viele weiche Tupfen, unten flacher
+        const x = W * (0.18 + r() * 0.64), y = H * (0.42 + (r() - 0.6) * 0.42), rad = 18 + r() * 34;
+        const g = c.createRadialGradient(x, y, 0, x, y, rad);
+        g.addColorStop(0, "rgba(255,255,255,0.55)"); g.addColorStop(0.6, "rgba(255,255,255,0.22)"); g.addColorStop(1, "rgba(255,255,255,0)");
+        c.fillStyle = g; c.beginPath(); c.arc(x, y, rad, 0, 6.3); c.fill();
+      }
+      const t = new THREE.CanvasTexture(cv);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    });
+    const N = 60, list = [], r = rng(777), group = new THREE.Group();
+    for (let i = 0; i < N; i++) {
+      const m = new THREE.SpriteMaterial({ map: tex[i % 3], transparent: true, depthWrite: false, fog: false, opacity: 0.9 });
+      const sp = new THREE.Sprite(m), a = r() * 6.283, d = 600 + r() * 1800, w = 340 + r() * 560;
+      sp.userData = { x: Math.cos(a) * d, z: Math.sin(a) * d, y: 140 + r() * 220, w };
+      sp.scale.set(w, w * 0.42, 1);
+      sp.renderOrder = -0.5;
+      group.add(sp); list.push(sp);
+    }
+    scene.add(group);
+    const state = { cover: 0.2, color: new THREE.Color(0xffffff), drift: [0, 0] };
+    return {
+      set(cover, color) {
+        state.cover = cover; state.color.copy(color);
+        const n = Math.round(N * Math.min(1, cover * 1.3));
+        list.forEach((sp, i) => {
+          sp.visible = i < n;
+          sp.material.color.copy(color);
+          const thick = cover > 0.8 ? 1.35 : 1;      // bei bedecktem Himmel groessere, tiefere Wolken
+          sp.scale.set(sp.userData.w * thick, sp.userData.w * 0.42 * thick, 1);
+        });
+      },
+      step(dt, cx, cz, wind) {
+        state.drift[0] += dt * (wind || 2) * 1.5; state.drift[1] += dt * (wind || 2) * 0.6;
+        for (const sp of list) {
+          if (!sp.visible) continue;
+          const u = sp.userData;
+          let x = ((u.x + state.drift[0]) % 4400 + 6600) % 4400 - 2200, z = ((u.z + state.drift[1]) % 4400 + 6600) % 4400 - 2200;
+          const d = Math.hypot(x, z), low = state.cover > 0.8 ? 0.7 : 1;
+          sp.position.set(cx + x, u.y * low, cz + z);
+          sp.material.opacity = Math.max(0, Math.min(0.95, (2300 - d) / 500));   // erst ganz hinten ausblenden
+        }
+      },
+    };
+  })();
   const pmrem = new THREE.PMREMGenerator(renderer), envScene = new THREE.Scene();
   envScene.add(new THREE.Mesh(new THREE.SphereGeometry(10, 24, 12), skyMat));
   let envTarget = null, WX = null, wxKey = "";          // Wetter an der Position (von der Box, wenn online)
@@ -161,6 +212,10 @@ export function start(el, state) {
     scene.background = horizon;
     const vis = WX && WX.vis ? Math.min(2600, Math.max(250, WX.vis)) : 2600;
     scene.fog = new THREE.Fog(horizon, vis * 0.17, vis);
+    // Wolkenfarbe: tags weiss, bei Regen grau, abends warm angestrahlt, nachts dunkel
+    const cc = mixC(0x30364a, 0xffffff, day).lerp(new THREE.Color(0x8a929c), Math.min(1, cloud * 0.5 + wet * 2) * day)
+      .lerp(new THREE.Color(0xffb88a), glow * 0.55);
+    clouds.set(WX && WX.cloud != null ? WX.cloud / 100 : 0.2, cc);
     if (envTarget) envTarget.dispose();
     envTarget = pmrem.fromScene(envScene, 0, 0.1, 50);
     waterMat.envMap = envTarget.texture;
@@ -857,6 +912,7 @@ export function start(el, state) {
       waterMat.normalScale.setScalar(Math.min(0.6, 0.14 + w * 0.045));
     }
     weatherStep(dt, camera.position.x, camera.position.z);
+    clouds.step(dt, camera.position.x, camera.position.z, WX && WX.wind);
     skyDome.position.copy(camera.position);
     wake.material.opacity = Math.min(0.55, speed / 4.5 * 0.55) * (0.8 + 0.2 * (inDrive ? 1 : 0));
     const flow = 1 + (WX && WX.wind ? WX.wind * 0.15 : 0.3);
