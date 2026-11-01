@@ -703,11 +703,13 @@ def live_json():
 # ---------- Handy als Display ----------
 
 SCREEN_CSS = """
-:root{--bg:#000;--fg:#f2f2ee;--dim:#8a8f98;--sig:#ff5a1f;--ok:#3ccf6e;--card:#20242c;--line:#3c424c}
+:root{--bg:#000;--fg:#f2f2ee;--dim:#8a8f98;--sig:#ff5a1f;--ok:#3ccf6e;--card:#20242c;--line:#3c424c;
+--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}   /* Statusleiste und Home-Leiste in der Web-App */
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
 font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
 .top{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
-padding:10px 16px;z-index:2;font-size:14px;color:var(--dim)}
+padding:calc(10px + var(--st)) max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));
+z-index:2;font-size:14px;color:var(--dim)}
 .top a{color:var(--dim);text-decoration:none}
 .tr{display:flex;align-items:center;gap:14px}
 .fsb{background:none;border:0;color:var(--dim);padding:2px;display:flex;cursor:pointer}.fsb svg{width:20px;height:20px;margin:0}
@@ -717,10 +719,10 @@ border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;
 .tip button{align-self:flex-end;background:var(--sig);color:#000;border:0;border-radius:10px;padding:8px 18px;font-weight:700}
 .dots{display:flex;gap:7px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
 .dots i.on{background:var(--fg)}
-.deck{display:flex;height:100svh;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.deck{display:flex;height:100vh;height:100dvh;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .deck::-webkit-scrollbar{display:none}
 .slide{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;flex-direction:column;
-align-items:center;justify-content:center;padding:52px 20px calc(60px + env(safe-area-inset-bottom))}
+align-items:center;justify-content:center;padding:calc(52px + var(--st)) 20px calc(60px + env(safe-area-inset-bottom))}
 .sc{width:100%;max-width:440px;text-align:center;font-variant-numeric:tabular-nums}
 .t{color:var(--dim);font-weight:700;font-size:clamp(20px,6vw,28px)}
 .sub{color:var(--dim);font-size:clamp(13px,3.6vw,16px);margin-top:2px}
@@ -815,7 +817,7 @@ background:linear-gradient(transparent,#000 35%);z-index:2}
 
 /* ---------- Querformat: eigene Layouts statt der gestauchten Hochkant-Ansicht ---------- */
 @media (orientation:landscape){
-.slide{padding:44px max(64px,env(safe-area-inset-right)) 16px max(64px,env(safe-area-inset-left))}
+.slide{padding:calc(44px + var(--st)) max(64px,env(safe-area-inset-right)) calc(16px + var(--sb)) max(64px,env(safe-area-inset-left))}
 .sc,.sc.full{max-width:1400px}
 /* Blaettern: zwei runde Pfeile an den Raendern statt der Leiste unten */
 .swipe{top:50%;bottom:auto;transform:translateY(-50%);justify-content:space-between;background:none;padding:0 6px;pointer-events:none}
@@ -846,42 +848,42 @@ background:linear-gradient(transparent,#000 35%);z-index:2}
 #journey .scene{position:absolute;inset:0;height:auto;margin:0}
 #journey .jtop,#journey .navc,#journey .goal{position:absolute;z-index:1;
 background:rgba(12,18,28,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-#journey .jtop{top:40px;left:50%;transform:translateX(-50%);width:min(44vw,600px);border-radius:14px;padding:8px 16px 10px}
+#journey .jtop{top:calc(40px + var(--st));left:50%;transform:translateX(-50%);width:min(44vw,600px);border-radius:14px;padding:8px 16px 10px}
 #journey .jhead .big{font-size:clamp(20px,min(3.4vw,6vh),40px)}
 #journey .prog{margin:6px 0 0;height:6px}
-#journey .live3{left:50%;transform:translateX(-50%);bottom:var(--m);width:min(calc(100% - 2*var(--m)),1100px);
+#journey .live3{left:50%;transform:translateX(-50%);bottom:max(var(--m),var(--sb));width:min(calc(100% - 2*var(--m)),1100px);
 height:var(--lb);margin:0;grid-template-columns:repeat(5,1fr);align-items:center;padding:6px}
 #journey .live3 .land{display:block}
 #journey .live3 b{font-size:clamp(22px,min(4vw,8.5vh),60px)}
 #journey .live3 span{font-size:clamp(11px,min(1.6vw,2.6vh),17px)}
-#journey #jr-stage{right:calc(var(--m) + 52px);bottom:calc(var(--lb) + var(--m) + 10px + clamp(44px,9vh,64px));width:min(34vw,400px);
+#journey #jr-stage{right:calc(var(--m) + 52px);bottom:calc(var(--lb) + max(var(--m),var(--sb)) + 10px + clamp(44px,9vh,64px));width:min(34vw,400px);
 margin:0;padding:10px 16px;border-radius:14px 14px 0 0}
 #journey #jr-stage .big{font-size:clamp(22px,min(3.6vw,7vh),48px)}
 #journey #jr-stage .r2{font-size:clamp(16px,min(2.4vw,4.6vh),30px)}
-#journey .goal{right:calc(var(--m) + 52px);bottom:calc(var(--lb) + var(--m) + 10px);width:min(34vw,400px);height:clamp(44px,9vh,64px);
+#journey .goal{right:calc(var(--m) + 52px);bottom:calc(var(--lb) + max(var(--m),var(--sb)) + 10px);width:min(34vw,400px);height:clamp(44px,9vh,64px);
 margin:0;padding:6px 16px;border-radius:0 0 14px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;justify-content:center}
 #journey .goal .r2{font-size:clamp(14px,min(2vw,4vh),24px)}#journey .goal b{font-size:inherit}
 #journey #jr-geta{display:none}
 #journey .grow{display:none!important}
-#journey .r3-wx{top:44px!important;left:var(--m)!important}
-#journey .r3-map{top:44px!important;right:var(--m)!important;width:clamp(84px,24vh,190px)!important;height:clamp(84px,24vh,190px)!important}
-#journey .r3-credit{left:var(--m)!important;bottom:calc(var(--lb) + var(--m) + 6px)!important}
+#journey .r3-wx{top:calc(44px + var(--st))!important;left:var(--m)!important}
+#journey .r3-map{top:calc(44px + var(--st))!important;right:var(--m)!important;width:clamp(84px,24vh,190px)!important;height:clamp(84px,24vh,190px)!important}
+#journey .r3-credit{left:var(--m)!important;bottom:calc(var(--lb) + max(var(--m),var(--sb)) + 6px)!important}
 .top{text-shadow:0 1px 3px rgba(0,0,0,.6)}
 }
 /* Flaches Querformat (Handy mit Browserleisten): kompaktes Cockpit, Szene bleibt frei */
 @media (orientation:landscape) and (max-height:520px){
-.top{padding:6px 14px}
+.top{padding:calc(6px + var(--st)) max(14px,env(safe-area-inset-right)) 6px max(14px,env(safe-area-inset-left))}
 #journey .sc.full{--lb:clamp(52px,19vh,72px);--m:max(8px,env(safe-area-inset-left))}
-#journey .jtop{top:30px;width:min(34vw,380px);padding:5px 12px 7px;border-radius:10px}
+#journey .jtop{top:calc(30px + var(--st));width:min(34vw,380px);padding:5px 12px 7px;border-radius:10px}
 #journey .jhead .big{font-size:clamp(16px,5vh,22px)}#journey .jhead span{font-size:12px}#journey .prog{height:4px;margin-top:4px}
 #journey .live3 b{font-size:clamp(18px,8vh,30px)}#journey .live3 span{font-size:11px}
-#journey #jr-stage{width:min(30vw,300px);padding:6px 12px;bottom:calc(var(--lb) + var(--m) + 6px + 30px)}
+#journey #jr-stage{width:min(30vw,300px);padding:6px 12px;bottom:calc(var(--lb) + max(var(--m),var(--sb)) + 6px + 30px)}
 #journey #jr-stage .lab{display:none}
 #journey #jr-stage .big{font-size:clamp(16px,6vh,26px)}#journey #jr-stage .r2{font-size:clamp(13px,4.4vh,18px)}
-#journey .goal{width:min(30vw,300px);height:30px;padding:2px 12px;bottom:calc(var(--lb) + var(--m) + 6px)}
+#journey .goal{width:min(30vw,300px);height:30px;padding:2px 12px;bottom:calc(var(--lb) + max(var(--m),var(--sb)) + 6px)}
 #journey .goal .r2{font-size:13px}
-#journey .r3-wx{top:30px!important}
-#journey .r3-map{top:30px!important;width:clamp(60px,22vh,90px)!important;height:clamp(60px,22vh,90px)!important}
+#journey .r3-wx{top:calc(30px + var(--st))!important}
+#journey .r3-map{top:calc(30px + var(--st))!important;width:clamp(60px,22vh,90px)!important;height:clamp(60px,22vh,90px)!important}
 .swipe button{width:36px;height:36px}
 }
 """

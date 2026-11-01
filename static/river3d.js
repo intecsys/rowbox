@@ -220,7 +220,8 @@ export function start(el, state) {
     skyU.sunCol.value.copy(mixC(0xffe2b0, 0xfff6e0, day)).multiplyScalar((day > 0 || glow > 0 ? 1 : 0) * Math.max(0, 1 - cloud * 1.2));
     sun.position.copy(skyU.sunDir.value).multiplyScalar(600);
     sun.color.copy(mixC(0xffb070, 0xffffff, day));
-    sun.intensity = (0.3 + 1.4 * day) * (1 - 0.6 * cloud);
+    // Sonne unter dem Horizont: kein Sonnenlicht, sonst gibt es nachts einen Glanzstreifen auf dem Wasser
+    sun.intensity = elev < -0.03 && !pre ? 0 : (0.04 + 1.66 * day) * (1 - 0.6 * cloud);
     hemi.intensity = 0.45 + 0.65 * day;
     scene.background = horizon;
     const vis = WX && WX.vis ? Math.min(2600, Math.max(250, WX.vis)) : 2600;
