@@ -20,6 +20,9 @@
 - Phone display, 3D view: clouds that follow the real cloud cover (none to overcast), drift with the wind and take their colour from time of day and weather (white, rain grey, lit by the evening sun, dark at night)
 - Phone display, journey: a live card under the 3D view with pace, stroke rate and watts; the route list leaves out the next stop (it is in the stage card), the destination takes one line, and on short screens the list is dropped instead of being cut off
 - Settings → Journey: choose which parts the phone's journey screen shows (3D view, live values, next stage, places, destination, small map, weather label) and pick the colours of the boat, the blades and the rower's shirt
+- Phone display in landscape (phone and tablet): own layouts instead of the squeezed portrait ones; the journey becomes a cockpit with the 3D river across the whole screen and glass panels on top (route and progress, next stage and destination, five live values: metres, pace, stroke rate, watts, time; weather and a bigger map); training, force curve, pacer and status are laid out side by side; round arrows at the edges instead of the swipe bar
+- Phone display: the screen stays on while the display is open (Wake Lock where allowed, otherwise a silent looping mini video, so it also works in Safari over plain http)
+- 3D view: lower resolution on large screens to stay smooth; subtler wake
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
 ## 2.2

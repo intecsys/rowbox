@@ -799,6 +799,63 @@ background:linear-gradient(transparent,#000 35%);z-index:2}
 .swipe button{background:none;border:0;color:var(--fg);padding:6px 12px;cursor:pointer;display:flex}
 .swipe button:disabled{opacity:.2}
 .swipe svg{width:22px;height:22px;margin:0}
+.live3 .land{display:none}
+
+/* ---------- Querformat: eigene Layouts statt der gestauchten Hochkant-Ansicht ---------- */
+@media (orientation:landscape){
+.slide{padding:44px max(64px,env(safe-area-inset-right)) 16px max(64px,env(safe-area-inset-left))}
+.sc,.sc.full{max-width:1400px}
+/* Blaettern: zwei runde Pfeile an den Raendern statt der Leiste unten */
+.swipe{top:50%;bottom:auto;transform:translateY(-50%);justify-content:space-between;background:none;padding:0 6px;pointer-events:none}
+.swipe span{display:none}
+.swipe button{pointer-events:auto;background:rgba(20,24,30,.55);border-radius:50%;width:44px;height:44px;padding:0;align-items:center;justify-content:center}
+/* Training: Strecke links gross, vier Werte rechts */
+#training .sc{display:grid;grid-template-columns:1.1fr 1fr;grid-template-rows:auto 1fr;column-gap:3vw}
+#training .t{grid-column:1/-1}
+#training .hero .huge{font-size:clamp(72px,min(15vw,34vh),260px)}
+#training .tiles,#training .pausebox{border-top:0;border-left:1px solid var(--line)}
+#training .tiles b{font-size:clamp(34px,min(6.5vw,13vh),110px)}
+/* Kraftkurve: Kurve breit, Werte rechts untereinander */
+#force .sc{display:grid;grid-template-columns:1fr minmax(160px,22vw);grid-template-rows:auto 1fr;column-gap:3vw}
+#force .t{grid-column:1/-1}#force .grow{margin-top:8px}
+#force .bar3{grid-template-columns:1fr;border-top:0;border-left:1px solid var(--line);padding:0 0 0 2vw;align-content:center}
+#force .bar3>div+div{border-left:0;border-top:1px solid var(--line)}#force .bar3>div{padding:2vh 0}
+#force .bar3 b{font-size:clamp(28px,min(5vw,9vh),72px)}
+/* Taktgeber: Sitz links, Text rechts */
+#pacer .sc{display:grid;grid-template-columns:minmax(120px,34vw) 1fr;grid-template-rows:auto 1fr;column-gap:4vw}
+#pacer .t{grid-column:1/-1}#pacer .foot{align-self:center;text-align:left;font-size:clamp(18px,3.4vh,32px)}
+/* Status: Urteil links, Karten rechts */
+#status .sc{display:grid;grid-template-columns:1fr 1.25fr;grid-template-rows:auto 1fr;column-gap:3vw}
+#status .t{grid-column:1/-1}#status .verdict{align-self:center;text-align:left}
+#status .verdict .big{font-size:clamp(34px,min(6vw,12vh),96px)}
+/* Reise als Cockpit: 3D-Fluss ueber den ganzen Bildschirm, Werte als Glas-Karten darueber */
+#journey{padding:0}
+#journey .sc.full{position:relative;max-width:none;height:100%;--lb:clamp(66px,17vh,120px);--m:max(12px,env(safe-area-inset-left))}
+#journey .scene{position:absolute;inset:0;height:auto;margin:0}
+#journey .jtop,#journey .navc,#journey .goal{position:absolute;z-index:1;
+background:rgba(12,18,28,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#journey .jtop{top:40px;left:50%;transform:translateX(-50%);width:min(44vw,600px);border-radius:14px;padding:8px 16px 10px}
+#journey .jhead .big{font-size:clamp(20px,min(3.4vw,6vh),40px)}
+#journey .prog{margin:6px 0 0;height:6px}
+#journey .live3{left:50%;transform:translateX(-50%);bottom:var(--m);width:min(calc(100% - 2*var(--m)),1100px);
+height:var(--lb);margin:0;grid-template-columns:repeat(5,1fr);align-items:center;padding:6px}
+#journey .live3 .land{display:block}
+#journey .live3 b{font-size:clamp(22px,min(4vw,8.5vh),60px)}
+#journey .live3 span{font-size:clamp(11px,min(1.6vw,2.6vh),17px)}
+#journey #jr-stage{right:calc(var(--m) + 52px);bottom:calc(var(--lb) + var(--m) + 10px + clamp(44px,9vh,64px));width:min(34vw,400px);
+margin:0;padding:10px 16px;border-radius:14px 14px 0 0}
+#journey #jr-stage .big{font-size:clamp(22px,min(3.6vw,7vh),48px)}
+#journey #jr-stage .r2{font-size:clamp(16px,min(2.4vw,4.6vh),30px)}
+#journey .goal{right:calc(var(--m) + 52px);bottom:calc(var(--lb) + var(--m) + 10px);width:min(34vw,400px);height:clamp(44px,9vh,64px);
+margin:0;padding:6px 16px;border-radius:0 0 14px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;justify-content:center}
+#journey .goal .r2{font-size:clamp(14px,min(2vw,4vh),24px)}#journey .goal b{font-size:inherit}
+#journey #jr-geta{display:none}
+#journey .grow{display:none!important}
+#journey .r3-wx{top:44px!important;left:var(--m)!important}
+#journey .r3-map{top:44px!important;right:var(--m)!important;width:clamp(84px,24vh,190px)!important;height:clamp(84px,24vh,190px)!important}
+#journey .r3-credit{left:var(--m)!important;bottom:calc(var(--lb) + var(--m) + 6px)!important}
+.top{text-shadow:0 1px 3px rgba(0,0,0,.6)}
+}
 """
 
 SCREEN_JS = r"""
@@ -836,7 +893,8 @@ async function live(){
  de.style.fontSize=dt.length>4?'min('+(128/dt.length).toFixed(1)+'vw,'+(80/dt.length).toFixed(1)+'vh,210px)':'';
  const tm=mmss(S.elapsed);$('tr-time').textContent=tm;$('tr-time').style.fontSize=tm.length>5?'min('+(70/tm.length).toFixed(1)+'vw,'+(42/tm.length).toFixed(1)+'vh,84px)':'';$('tr-spm').textContent=S.spm||0;$('tr-w').textContent=S.watts||0;
  $('tr-pace').textContent=S.pace?mmss(S.pace):'–';
- if($('jl-pace')){$('jl-pace').textContent=S.active&&S.pace?mmss(S.pace):'–';$('jl-spm').textContent=S.active?S.spm||0:0;$('jl-w').textContent=S.active?S.watts||0:0}
+ if($('jl-pace')){$('jl-pace').textContent=S.active&&S.pace?mmss(S.pace):'–';$('jl-spm').textContent=S.active?S.spm||0:0;$('jl-w').textContent=S.active?S.watts||0:0;
+  $('jl-dist').textContent=(S.dist||0).toLocaleString(T.locale);$('jl-time').textContent=mmss(S.elapsed)}
  $('tr-pause').style.display=pause?'':'none';$('tr-row').style.display=pause?'none':'';
  if(pause)$('tr-left').textContent=mmss(S.pause_left);
  if(S.curve&&S.stroke_n!==lastN){lastN=S.stroke_n;hist.push(S.curve);if(hist.length>5)hist.shift();
@@ -910,6 +968,19 @@ function river(){
  svg.innerHTML=out}
 addEventListener('resize',river);
 window.rowboxState=()=>({S,W,G});
+// Bildschirm beim Rudern anlassen: Wake Lock, wo der Browser es erlaubt (nur HTTPS), sonst ein
+// stummes, unsichtbares Mini-Video in Schleife (so bleibt auch Safari auf dem iPhone/iPad wach).
+const NOSLEEP='data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMrbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAB9AAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAlV0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAB9AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAfQAAAAAAABAAAAAAHNbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAgABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABeG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAThzdGJsAAAAuHN0c2QAAAAAAAAAAQAAAKhhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAALmF2Y0MBQsAK/+EAFmdCwArZHsBEAAADAAQAAAMACDxImSABAAVoy4PEyAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAAApQAAAKUAAAABhzdHRzAAAAAAAAAAEAAAACAABAAAAAABRzdHNzAAAAAAAAAAEAAAABAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAACAAAAAQAAABxzdHN6AAAAAAAAAAAAAAACAAACiQAAAAsAAAAUc3RjbwAAAAAAAAABAAADWwAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjAuMTYuMTAwAAAACGZyZWUAAAKcbWRhdAAAAnIGBf//btxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjQgcjMxMDggMzFlMTlmOSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjMgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTotMzotMyBhbmFseXNlPTB4MToweDExMSBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9Mi4wMDowLjcwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MCBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tNCB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0wIHdlaWdodHA9MCBrZXlpbnQ9MjUwIGtleWludF9taW49MSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMjAAgAAAAA9liIQF85///w9FAAFXn4AAAAAHQZo4C+c6gA==';
+let wakeLock=null;const nsv=document.createElement('video');
+nsv.muted=true;nsv.loop=true;nsv.playsInline=true;nsv.setAttribute('playsinline','');nsv.src=NOSLEEP;
+nsv.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none';
+document.body.appendChild(nsv);
+async function awake(){if(document.hidden)return;
+ try{if('wakeLock' in navigator&&window.isSecureContext){wakeLock=await navigator.wakeLock.request('screen');return}}catch(e){}
+ nsv.play().catch(()=>{})}
+document.addEventListener('visibilitychange',awake);
+for(const ev of['touchend','click'])addEventListener(ev,awake,{once:true});
+awake();
 var R3=null,R3try=false,JSHOW=null;
 function scene3d(){
  const on=slides[cur]&&slides[cur].id=='journey'&&!document.hidden&&(!JSHOW||JSHOW.includes('scene'));
@@ -981,11 +1052,13 @@ def screen_page():
              "h_app": L("In der App mit „WaterRower S4“ verbinden"), "spm": int(conf.get("pacer_spm") or 0),
              "own": L("Takt {spm}/min · dein Rhythmus", spm="{spm}"), "fixed": L("Takt {spm}/min · fest", spm="{spm}")}
     journey = f"""<section class="slide" id="journey"><div class="sc full">
-<div class="jhead"><div class="big" id="jr-river">{L("Reise")}</div><span id="jr-prog"></span></div>
-<div class="prog"><i id="jr-bar" style="width:0"></i></div>
+<div class="jtop"><div class="jhead"><div class="big" id="jr-river">{L("Reise")}</div><span id="jr-prog"></span></div>
+<div class="prog"><i id="jr-bar" style="width:0"></i></div></div>
 <div class="scene" id="jr-3d"></div>
-<div class="navc live3" id="jr-live"><div><b id="jl-pace">–</b><span>/500 m</span></div>
-<div><b id="jl-spm">0</b><span>{L("Schläge/min")}</span></div><div><b id="jl-w">0</b><span>{L("Watt")}</span></div></div>
+<div class="navc live3" id="jr-live"><div class="land"><b id="jl-dist">0</b><span>{L("Meter")}</span></div>
+<div><b id="jl-pace">–</b><span>/500 m</span></div>
+<div><b id="jl-spm">0</b><span>{L("Schläge/min")}</span></div><div><b id="jl-w">0</b><span>{L("Watt")}</span></div>
+<div class="land"><b id="jl-time">0:00</b><span>{L("Zeit")}</span></div></div>
 <div class="navc" id="jr-stage"><div class="lab">{L("Nächste Etappe")}</div><div class="big" id="jr-next">…</div>
 <div class="r2"><span><span id="jr-nkm"></span> km</span><span class="warn" id="jr-neta"></span></div></div>
 <div class="grow" id="jr-grow"><svg id="jr-svg"></svg><ul class="route" id="jr-route"></ul></div>

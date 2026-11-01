@@ -426,7 +426,7 @@ export function start(el, state) {
     for (const side of [-1, 1]) {
       const b = pos.length / 3;
       for (let i = 0; i <= 10; i++) {
-        const t = i / 10, z = 3.8 + t * 34, x = side * (0.25 + t * 9), w = 0.35 + t * 1.6, a = (1 - t) * (1 - t);
+        const t = i / 10, z = 3.8 + t * 16, x = side * (0.25 + t * 4.5), w = 0.15 + t * 0.6, a = Math.pow(1 - t, 2.5);
         pos.push(x - side * w / 2, 0.06, z, x + side * w / 2, 0.06, z);
         col.push(1, 1, 1, a, 1, 1, 1, a * 0.6);
         if (i < 10) idx.push(b + 2 * i, b + 2 * i + 1, b + 2 * i + 2, b + 2 * i + 1, b + 2 * i + 3, b + 2 * i + 2);
@@ -754,6 +754,7 @@ export function start(el, state) {
   const wxLabel = document.createElement("div");
   wxLabel.style.cssText = "position:absolute;left:8px;top:8px;padding:3px 8px;border-radius:10px;" +
     "background:rgba(10,22,40,.55);color:#fff;font:600 12px system-ui,sans-serif;display:none;pointer-events:none";
+  map.className = "r3-map"; credit.className = "r3-credit"; wxLabel.className = "r3-wx";   // Querformat stellt sie per CSS um
   el.append(map, credit, wxLabel);
   let mapAt = 0;
   function minimap(x, z, fx, fz) {
@@ -762,7 +763,7 @@ export function start(el, state) {
     map.style.display = show && wants("map") ? "block" : "none";
     if (!show) return;
     credit.textContent = path.attribution || "© OpenStreetMap";
-    const dpr = Math.min(window.devicePixelRatio || 1, 2), W = 84 * dpr, R = 7000, k = (W / 2 - 8 * dpr) / R;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), W = Math.round((map.clientWidth || 84) * dpr), R = 7000, k = (W / 2 - 8 * dpr) / R;
     if (map.width !== W) map.width = map.height = W;
     const c = map.getContext("2d");
     c.clearRect(0, 0, W, W);
@@ -831,6 +832,7 @@ export function start(el, state) {
   }
   const pose = { seat: 0, torso: 0, oar: 0, lift: 0 };
   const cam = { fx: 0, fz: -1 };
+  let wide = false;
 
   function frame(now) {
     if (!running) return;
@@ -897,11 +899,18 @@ export function start(el, state) {
     cam.fx += ((b[0] - a[0]) / ab - cam.fx) * Math.min(1, dt * 2);
     cam.fz += ((b[1] - a[1]) / ab - cam.fz) * Math.min(1, dt * 2);
     const n = Math.hypot(cam.fx, cam.fz) || 1, fx = cam.fx / n, fz = cam.fz / n;
-    camera.position.set(x - fx * 9.5 - fz * 0.25, 3.2, z - fz * 9.5 + fx * 0.25);
-    camera.lookAt(x + fx * 40, 0.8, z + fz * 40);
+    const back = wide ? 14 : 9.5, ch = wide ? 3.4 : 3.2, ly = wide ? -1.9 : 0.8;
+    camera.position.set(x - fx * back - fz * 0.25, ch, z - fz * back + fx * 0.25);
+    camera.lookAt(x + fx * 40, ly, z + fz * 40);
     const w = el.clientWidth, h = el.clientHeight;
-    if (renderer.domElement.width !== Math.round(w * renderer.getPixelRatio()) || camera.aspect !== w / h) {
+    // Grosse Flaechen (Tablet, Querformat) mit etwas weniger Aufloesung, damit es fluessig bleibt
+    const pr = Math.min(window.devicePixelRatio || 1, w * h > 700000 ? 1.25 : w * h > 350000 ? 1.5 : 2);
+    if (renderer.getPixelRatio() !== pr) renderer.setPixelRatio(pr);
+    if (renderer.domElement.width !== Math.round(w * pr) || renderer.domElement.height !== Math.round(h * pr)) {
       renderer.setSize(w, h, false);
+      // Querformat (Cockpit): weiter weg und steiler nach unten, damit das Boot ueber der Werteleiste liegt
+      wide = w / h > 1.25;
+      camera.fov = wide ? 50 : 42;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }
@@ -927,7 +936,7 @@ export function start(el, state) {
     weatherStep(dt, camera.position.x, camera.position.z);
     clouds.step(dt, camera.position.x, camera.position.z, WX && WX.wind);
     skyDome.position.copy(camera.position);
-    wake.material.opacity = Math.min(0.55, speed / 4.5 * 0.55) * (0.8 + 0.2 * (inDrive ? 1 : 0));
+    wake.material.opacity = Math.min(0.28, speed / 4.5 * 0.28) * (0.8 + 0.2 * (inDrive ? 1 : 0));
     const flow = 1 + (WX && WX.wind ? WX.wind * 0.15 : 0.3);
     waves.offset.x += dt * 0.012 * flow; waves.offset.y -= dt * 0.03 * flow;
     renderer.render(scene, camera);

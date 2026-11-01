@@ -68,7 +68,9 @@ into a route file (see [CONTRIBUTING](CONTRIBUTING.md)).
   curve of every stroke, drive and recovery time.
 - **Phone as display:** `http://<hostname>.local/display` shows the box's screens full-screen on
   your phone: training, force curve, pacer, live wave, journey and status, switched by swiping left
-  and right. With the Ultralight version this is your display. The journey screen shows the
+  and right. Turn the phone or a tablet sideways and the journey becomes a cockpit: the 3D river
+  across the whole screen, with the live values on top. The screen stays on while you row.
+  With the Ultralight version this is your display. The journey screen shows the
   [3D river](#row-the-rhine-in-3d). For the weather the box sends your virtual position on the
   route, not yours, to [Open-Meteo](https://open-meteo.com) about every 15 minutes; you can switch
   it off in the settings.

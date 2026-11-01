@@ -69,7 +69,9 @@ OpenStreetMap-Daten eine Streckendatei (siehe [CONTRIBUTING](CONTRIBUTING.md), a
   Kraftkurve jedes Zugs sowie Zug- und Rollphase.
 - **Handy als Display:** `http://<hostname>.local/anzeige` zeigt die Ansichten der Box im Vollbild
   auf dem Handy: Training, Kraftkurve, Taktgeber, Live-Kurve, Reise und Status, gewechselt durch
-  Wischen nach links und rechts. Bei der Ultralight-Variante ist das dein Display. Die
+  Wischen nach links und rechts. Dreh das Handy oder ein Tablet quer, wird die Reise zum Cockpit:
+  der 3D-Fluss über den ganzen Bildschirm, die Live-Werte darüber. Der Bildschirm bleibt beim
+  Rudern an. Bei der Ultralight-Variante ist das dein Display. Die
   Reise-Ansicht zeigt den [Fluss in 3D](#den-rhein-in-3d-rudern). Für das Wetter schickt die Box
   deine virtuelle Position auf der Strecke, nicht deine, etwa alle 15 Minuten an
   [Open-Meteo](https://open-meteo.com); abschalten kannst du das in den Einstellungen.
