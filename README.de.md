@@ -39,8 +39,19 @@ Zuganfang.
   Schnee, Nebel nach Sichtweite, Wind auf dem Wasser und ein kleines Schild wie „9 °C · Regen“.
 - **Läuft offline:** Die Strecke liegt auf der Box (etwa 85 KB), beim Rudern ist kein Kartendienst
   nötig. Ohne Internet bleibt der Himmel einfach freundlich.
+- **Live-Werte auf dem Fluss:** Eine Karte unter der Szene zeigt beim Rudern Pace, Schlagzahl und
+  Watt, dazu die nächste Etappe und das Ziel.
+- **Tablet oder Handy quer = Cockpit:** Der Fluss füllt den ganzen Bildschirm, darüber Glaskarten
+  für die Strecke, die nächste Etappe und fünf Live-Werte (Meter, Pace, Schlagzahl, Watt, Zeit).
+  Der Bildschirm bleibt beim Rudern an.
+- **Nach deinem Geschmack:** Unter Einstellungen → Reise wählst du, was die Reise-Ansicht zeigt
+  (3D-Ansicht, Live-Werte, nächste Etappe, Orte, Ziel, kleine Karte, Wetter-Schild), und die
+  Farben von Boot, Blättern und Shirt des Ruderers.
 - **Gemacht fürs Handy:** three.js läuft im Browser des Handys, der Pi liefert nur die Dateien.
   Die Szene rechnet nur, solange die Reise-Ansicht sichtbar ist.
+
+<p align="center"><img src="docs/cockpit.jpg" width="900" alt="Reise als Cockpit auf dem Tablet quer: 3D-Fluss über den ganzen Bildschirm, Strecke oben, nächste Etappe und Ziel rechts, fünf Live-Werte unten"></p>
+<p align="center"><sub>Quer auf dem Tablet: die Reise als Cockpit.</sub></p>
 
 Andere Strecken zeigen vorerst einen erzeugten Fluss; `tools/build_route.py` macht aus
 OpenStreetMap-Daten eine Streckendatei (siehe [CONTRIBUTING](CONTRIBUTING.md), auf Englisch).
@@ -96,7 +107,8 @@ OpenStreetMap-Daten eine Streckendatei (siehe [CONTRIBUTING](CONTRIBUTING.md), a
   ersten 10 km oder eine Stunde am Stück, erscheinen nach der Einheit auf dem Display. Keine
   Serien, keine Fristen, nichts geht verloren; in den Einstellungen abschaltbar.
 - **Eigene Auswahl an Ansichten:** In den Einstellungen legst du fest, welche Ansichten die
-  Display-Taste durchblättert.
+  Display-Taste durchblättert, was die Reise-Ansicht auf dem Handy zeigt und welche Farben das
+  3D-Boot hat.
 - **Pause mit Countdown:** In einer kurzen Pause bleibt das Display in der Trainingsansicht und
   zeigt, wann die Einheit automatisch endet.
 - **MQTT (optional):** schickt die Werte an einen MQTT-Server; Home Assistant erkennt sie von

@@ -38,8 +38,19 @@ with the shape of your force curve. Stop rowing and he waits at the catch.
   and a small label like "9 °C · rain".
 - **Works offline:** the route ships with the box (about 85 KB), no map service needed while you
   row. Without internet the sky simply stays fair.
+- **Live values on the river:** a card under the scene shows pace, stroke rate and watts while
+  you row, together with the next stage and the destination.
+- **Tablet or phone sideways = cockpit:** the river fills the whole screen, with glass panels for
+  the route, the next stage and five live values (metres, pace, stroke rate, watts, time).
+  The screen stays on while you row.
+- **Make it yours:** in Settings → Journey you pick which parts the journey screen shows (3D view,
+  live values, next stage, places, destination, small map, weather label) and the colours of the
+  boat, the blades and the rower's shirt.
 - **Made for the phone:** three.js runs in the phone's browser; the Pi only serves the files.
   The scene renders only while the journey screen is visible.
+
+<p align="center"><img src="docs/cockpit_en.jpg" width="900" alt="Journey as a cockpit on a tablet in landscape: 3D river across the screen, route at the top, next stage and destination on the right, five live values at the bottom"></p>
+<p align="center"><sub>Sideways on a tablet: the journey as a cockpit.</sub></p>
 
 Other routes keep a generated river for now; `tools/build_route.py` turns OpenStreetMap data
 into a route file (see [CONTRIBUTING](CONTRIBUTING.md)).
@@ -93,7 +104,7 @@ into a route file (see [CONTRIBUTING](CONTRIBUTING.md)).
   10 km or an hour in one go appear on the display after a session. No streaks, no deadlines,
   nothing to lose; switch it off in the settings if you like.
 - **Your own set of screens:** in the settings you choose which screens the display button
-  cycles through.
+  cycles through, which parts the phone's journey screen shows and the colours of the 3D boat.
 - **Pause countdown:** during a short break the display stays on the training screen and shows
   how long until the session ends automatically.
 - **MQTT (optional):** sends the values to an MQTT server; Home Assistant picks them up
