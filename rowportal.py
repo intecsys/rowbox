@@ -702,7 +702,27 @@ svg,canvas{width:100%;display:block;margin-top:18px}
 .st li span{margin-left:auto;color:var(--dim);font-weight:400;font-size:clamp(14px,4.4vw,20px)}
 .st i{width:16px;height:16px;border-radius:50%;background:var(--line);flex:none}
 .st i.ok{background:var(--ok)}.st i.bad{background:#e5484d}.st i.wait{background:#3d5afe}
-#training .sc{height:100%;display:flex;flex-direction:column;max-width:520px}
+.sc.full{height:100%;display:flex;flex-direction:column;max-width:520px}
+.grow{flex:1;min-height:0;position:relative;margin-top:12px}
+.grow>svg,.grow>canvas{position:absolute;inset:0;width:100%;height:100%;margin:0}
+.over{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);
+padding:24px;font-size:clamp(15px,2.2vh,20px);line-height:1.4}
+.bar3{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);padding:14px 0 4px}
+.bar3>div+div{border-left:1px solid var(--line)}
+.bar3 b{display:block;font-size:clamp(28px,min(10vw,6vh),58px);font-weight:800}
+.bar3 span{color:var(--dim);font-size:clamp(12px,1.9vh,17px)}
+.foot{color:var(--dim);font-size:clamp(14px,2.2vh,19px);padding:12px 0 4px}
+.route{position:relative;z-index:0;list-style:none;margin:0;padding:0 0 0 6px;height:100%;display:flex;flex-direction:column;justify-content:space-evenly;text-align:left}
+.route li{position:relative;padding-left:30px;display:flex;justify-content:space-between;align-items:baseline;
+font-size:clamp(17px,2.8vh,26px);font-weight:700}
+.route li::before{content:"";position:absolute;left:0;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--line)}
+.route li::after{content:"";position:absolute;left:6px;top:50%;height:calc(100% + 40px);width:2px;background:var(--line);z-index:-1}
+.route li:last-child::after{display:none}
+.route li span{color:var(--dim);font-weight:400;font-size:.8em}
+.route li.past{color:var(--dim)}.route li.past::before{background:var(--sig)}
+.route li.here{color:var(--sig)}.route li.here::before{background:var(--fg);box-shadow:0 0 0 4px var(--sig)}
+.st.full{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;margin:0}
+.st.full li{font-size:clamp(22px,min(7vw,4.2vh),36px)}
 .hero{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
 .hero .huge{font-size:clamp(84px,min(32vw,20vh),210px);margin:0}
 .hero .sub{font-size:clamp(15px,2.4vh,22px)}
@@ -734,7 +754,9 @@ try{const id=localStorage.getItem('rowbox-screen');const i=slides.findIndex(x=>x
  if(i>0)requestAnimationFrame(()=>{deck.scrollLeft=i*deck.clientWidth;mark()})}catch(e){}
 mark();setTimeout(()=>$('hint').style.opacity=0,4000);
 // --- 1 Hz: Trainingswerte, Kraftkurve, Status ---
-let S={};
+let S={},lastN=null;const hist=[];
+function fit(cv){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1,w=Math.round(r.width*d),h=Math.round(r.height*d);
+ if(w&&h&&(cv.width!=w||cv.height!=h)){cv.width=w;cv.height=h}return d}
 async function live(){
  try{const r=await fetch('/live.json',{cache:'no-store'});
   if(r.status==401){location.href='/login?next=/anzeige';return}
@@ -747,10 +769,13 @@ async function live(){
  $('tr-pace').textContent=S.pace?mmss(S.pace):'–';
  $('tr-pause').style.display=pause?'':'none';$('tr-row').style.display=pause?'none':'';
  if(pause)$('tr-left').textContent=mmss(S.pause_left);
- if(S.curve){$('fc-path').setAttribute('points',S.curve.map((v,i)=>(i*300/(S.curve.length-1)).toFixed(1)+','+(112-v*1.05).toFixed(1)).join(' '));
+ if(S.curve&&S.stroke_n!==lastN){lastN=S.stroke_n;hist.push(S.curve);if(hist.length>5)hist.shift();
+  $('fc-g').innerHTML=hist.map((c,i)=>{const top=i==hist.length-1;return '<polyline fill="none" stroke-linejoin="round" vector-effect="non-scaling-stroke" points="'+
+   c.map((v,k)=>(k*300/(c.length-1)).toFixed(1)+','+(118-v*1.15).toFixed(1)).join(' ')+'" stroke="'+(top?'#ff5a1f':'#8a8f98')+
+   '" stroke-width="'+(top?5:2)+'" opacity="'+(top?1:0.15+0.08*i)+'"/>'}).join('');
   $('fc-none').style.display='none'}
  $('fc-d').textContent=num(S.drive,2);$('fc-r').textContent=num(S.recover,2);
- $('fc-q').textContent=S.drive&&S.recover?'1 : '+num(S.recover/S.drive,1):'';
+ $('fc-q').textContent=S.drive&&S.recover?'1:'+num(S.recover/S.drive,1):'–';
  const st=(id,cls,txt)=>{$(id).className=cls;$(id+'t').textContent=txt};
  const fresh=!!S.fresh;
  st('s-br',fresh?'ok':'bad',fresh?T.runs:T.off);
@@ -766,11 +791,13 @@ async function slow(){
   $('jr-river').textContent=g.river;$('jr-next').textContent=g.done?g.goal:g.next;
   $('jr-nkm').textContent=g.done?T.done:g.next_left;$('jr-neta').textContent=g.done?'':g.eta_next;
   $('jr-goal').textContent=g.goal;$('jr-gkm').textContent=g.left+' km';$('jr-geta').textContent=g.eta_goal;
-  const w=300,x=k=>10+(w-20)*k/g.total,y=20;
-  $('jr-line').innerHTML='<line x1="10" y1="'+y+'" x2="'+(w-10)+'" y2="'+y+'" stroke="#3c424c" stroke-width="5" stroke-linecap="round"/>'+
-   '<line x1="10" y1="'+y+'" x2="'+x(g.km)+'" y2="'+y+'" stroke="#ff5a1f" stroke-width="5" stroke-linecap="round"/>'+
-   g.stops.map(s=>'<circle cx="'+x(s[0])+'" cy="'+y+'" r="5" fill="'+(s[0]<=g.km?'#ff5a1f':'#3c424c')+'"/>').join('')+
-   '<polygon points="'+(x(g.km)-8)+',2 '+(x(g.km)+8)+',2 '+x(g.km)+',12" fill="#f2f2ee"/>';
+  const kmf=d=>d.toLocaleString(T.locale,{maximumFractionDigits:d<10?1:0});
+  const past=g.stops.filter(s=>s[0]<=g.km),ahead=g.stops.filter(s=>s[0]>g.km);
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let li=past.slice(-1).map(s=>'<li class="past">'+esc(s[1])+'<span>'+kmf(g.km-s[0])+' km</span></li>');
+  if(!g.done)li.push('<li class="here">'+esc(T.here)+'<span>'+kmf(g.km)+' / '+kmf(g.total)+' km</span></li>');
+  li=li.concat(ahead.slice(0,5).map(s=>'<li>'+esc(s[1])+'<span>'+kmf(s[0]-g.km)+' km</span></li>'));
+  $('jr-route').innerHTML=li.join('');
  }catch(e){}
 }
 // --- 10 Hz nur fuer Taktgeber und Live-Kurve ---
@@ -789,25 +816,28 @@ function pacer(){
   else{const err=((P.phase-anchor+0.5)%1+1)%1-0.5;P.marks.push(Math.abs(err)<0.12);if(P.marks.length>8)P.marks.shift();
    if(!T.spm)P.phase=Math.abs(err)>0.3?anchor:((P.phase-0.3*err)%1+1)%1}
   P.last=c}
- const cv=$('pc'),x=cv.getContext('2d'),w=cv.width,h=cv.height;x.clearRect(0,0,w,h);
- const y=h*0.38,x0=40,x1=w-40;x.strokeStyle='#3c424c';x.lineWidth=6;x.lineCap='round';
- x.beginPath();x.moveTo(x0,y);x.lineTo(x1,y);x.stroke();
+ const cv=$('pc'),d=fit(cv),x=cv.getContext('2d'),w=cv.width,h=cv.height;x.clearRect(0,0,w,h);
+ // Rollsitz senkrecht: unten = Auslage (Zuganfang), oben = Endzug
+ const cx=w/2,y0=h*0.80,y1=h*0.08,r=Math.min(w*0.09,h*0.05);
+ x.strokeStyle='#3c424c';x.lineWidth=8*d;x.lineCap='round';x.beginPath();x.moveTo(cx,y0);x.lineTo(cx,y1);x.stroke();
+ x.lineWidth=4*d;[y0,y1].forEach(yy=>{x.beginPath();x.moveTo(cx-r*1.4,yy);x.lineTo(cx+r*1.4,yy);x.stroke()});
  const D=1/3,p=P.phase,seat=p<D?0.5-0.5*Math.cos(p/D*Math.PI):1-(0.5-0.5*Math.cos((p-D)/(1-D)*Math.PI));
- x.fillStyle=p<D?'#3ccf6e':'#3d5afe';x.beginPath();x.arc(x0+seat*(x1-x0),y,20,0,7);x.fill();
+ x.fillStyle=p<D?'#3ccf6e':'#3d5afe';x.beginPath();x.arc(cx,y0+seat*(y1-y0),r,0,7);x.fill();
+ const mr=Math.min(w/40,h*0.018),gap=mr*3.2;
  P.marks.forEach((ok,i)=>{x.fillStyle=ok?'#3ccf6e':'#ff5a1f';x.beginPath();
-  x.arc(w/2+(i-(P.marks.length-1)/2)*30,h*0.78,8,0,7);x.fill()});
+  x.arc(cx+(i-(P.marks.length-1)/2)*gap,h*0.93,mr,0,7);x.fill()});
  const spm=P.period?Math.round(60/P.period):0;
  $('pc-txt').textContent=(T.spm?T.fixed:T.own).replace('{spm}',spm);
  $('pc-start').style.display=P.started?'none':'';
 }
 function wave(){
- const cv=$('wv'),x=cv.getContext('2d'),w=cv.width,h=cv.height;x.clearRect(0,0,w,h);
+ const cv=$('wv'),d=fit(cv),x=cv.getContext('2d'),w=cv.width,h=cv.height;x.clearRect(0,0,w,h);
  const raw=W.w||[],sm=raw.map((_,i)=>{const a=raw.slice(Math.max(0,i-3),i+1);return a.reduce((p,q)=>p+q,0)/a.length});
  const sc=Math.max(600,Math.max(0,...sm)*1.1),age=Date.now()/1000-(W.ts||0),step=w/240;
- x.strokeStyle='#2d4632';x.lineWidth=2;
+ x.strokeStyle='#2d4632';x.lineWidth=2*d;
  for(const ago of W.catch_ago||[]){const px=w-(ago+age)/0.025*step;if(px>=0){x.beginPath();x.moveTo(px,8);x.lineTo(px,h-6);x.stroke()}}
  x.strokeStyle='#32373e';x.beginPath();x.moveTo(0,h-6);x.lineTo(w,h-6);x.stroke();
- if(sm.length>1){x.strokeStyle='#e0662b';x.lineWidth=4;x.lineJoin='round';x.beginPath();
+ if(sm.length>1){x.strokeStyle='#e0662b';x.lineWidth=4*d;x.lineJoin='round';x.beginPath();
   sm.forEach((v,i)=>{const px=w-(sm.length-i)*step,py=h-6-v/sc*(h-16);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke()}
 }
 async function fast(){
@@ -826,12 +856,12 @@ def screen_page():
     texts = {"locale": "de-DE" if lang == "de" else "en-GB", "dec": "," if lang == "de" else ".",
              "training": L("Training"), "pause": L("Pause"), "runs": L("läuft"), "off": L("aus"),
              "conn": L("verbunden"), "cable": L("Kabel?"), "waits": L("wartet"), "fw": L("Firmware"),
-             "done": L("Ziel erreicht"), "spm": int(conf.get("pacer_spm") or 0),
+             "done": L("Ziel erreicht"), "here": L("Du bist hier"), "spm": int(conf.get("pacer_spm") or 0),
              "own": L("Takt {spm}/min · dein Rhythmus", spm="{spm}"), "fixed": L("Takt {spm}/min · fest", spm="{spm}")}
-    journey = f"""<section class="slide" id="journey"><div class="sc"><div class="sub" id="jr-river"></div>
+    journey = f"""<section class="slide" id="journey"><div class="sc full"><div class="t" id="jr-river">{L("Reise")}</div>
 <div class="navc"><div class="lab">{L("Nächste Etappe")}</div><div class="big" id="jr-next">…</div>
 <div class="r2"><span><span id="jr-nkm"></span> km</span><span class="warn" id="jr-neta"></span></div></div>
-<svg viewBox="0 0 300 30" id="jr-line"></svg>
+<div class="grow"><ul class="route" id="jr-route"></ul></div>
 <div class="goal"><div class="lab">{L("Ziel")}</div><div class="r2"><b id="jr-goal"></b><span id="jr-gkm"></span></div>
 <div class="lab" id="jr-geta"></div></div></div></section>""" if game else ""
     body = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
@@ -840,26 +870,26 @@ def screen_page():
 <title>Rowbox – {L("Anzeige")}</title><style>{SCREEN_CSS}</style></head><body>
 <div class="top"><a href="/live">‹ rowbox</a><div class="dots" id="dots"></div></div>
 <main class="deck" id="deck">
-<section class="slide" id="training"><div class="sc"><div class="t" id="tr-t">{L("Training")}</div>
+<section class="slide" id="training"><div class="sc full"><div class="t" id="tr-t">{L("Training")}</div>
 <div class="hero"><div class="huge" id="tr-dist">0</div><div class="sub">{L("Meter")}</div></div>
 <div class="tiles" id="tr-row"><div><b id="tr-time">0:00</b><span>{L("Zeit")}</span></div>
 <div><b id="tr-pace">–</b><span>/500 m</span></div>
 <div><b id="tr-spm">0</b><span>{L("Schläge/min")}</span></div><div><b id="tr-w">0</b><span>{L("Watt")}</span></div></div>
 <div class="pausebox" id="tr-pause" style="display:none"><div class="lab">{L("Automatisches Ende in")}</div>
 <div class="big warn" id="tr-left"></div></div></div></section>
-<section class="slide" id="force"><div class="sc"><div class="t">{L("Kraftkurve")}</div>
-<svg viewBox="0 -4 300 120"><line x1="0" y1="112" x2="300" y2="112" stroke="#3c424c" stroke-width="2"/>
-<polyline id="fc-path" fill="none" stroke="#ff5a1f" stroke-width="4" stroke-linejoin="round" points=""/></svg>
-<div class="sub" id="fc-none">{L("Noch keine Kraftkurve. Sie erscheint nach dem ersten Zug.")}</div>
-<div class="row3"><div><b id="fc-d">–</b><span>{L("Zug (s)")}</span></div><div><b id="fc-r">–</b><span>{L("Rollphase (s)")}</span></div></div>
-<div class="sub" id="fc-q"></div></div></section>
-<section class="slide" id="pacer"><div class="sc"><div class="t">{L("Taktgeber")}</div>
-<canvas id="pc" width="600" height="360"></canvas><div class="sub" id="pc-start">{L("Startet mit dem ersten Zug")}</div>
-<div class="sub" id="pc-txt"></div></div></section>
-<section class="slide" id="wave"><div class="sc"><div class="t">{L("Live-Kurve")}</div>
-<canvas id="wv" width="600" height="420"></canvas></div></section>
+<section class="slide" id="force"><div class="sc full"><div class="t">{L("Kraftkurve")}</div>
+<div class="grow"><svg viewBox="0 -6 300 126" preserveAspectRatio="none">
+<g id="fc-g"></g></svg>
+<div class="over" id="fc-none">{L("Noch keine Kraftkurve. Sie erscheint nach dem ersten Zug.")}</div></div>
+<div class="bar3"><div><b id="fc-d">–</b><span>{L("Zug (s)")}</span></div><div><b id="fc-r">–</b><span>{L("Rollphase (s)")}</span></div>
+<div><b id="fc-q">–</b><span>{L("Verhältnis")}</span></div></div></div></section>
+<section class="slide" id="pacer"><div class="sc full"><div class="t">{L("Taktgeber")}</div>
+<div class="grow"><canvas id="pc"></canvas><div class="over" id="pc-start" style="align-items:flex-start">{L("Startet mit dem ersten Zug")}</div></div>
+<div class="foot" id="pc-txt"></div></div></section>
+<section class="slide" id="wave"><div class="sc full"><div class="t">{L("Live-Kurve")}</div>
+<div class="grow"><canvas id="wv"></canvas></div></div></section>
 {journey}
-<section class="slide" id="status"><div class="sc"><div class="t">Rowbox</div><ul class="st">
+<section class="slide" id="status"><div class="sc full"><div class="t">Rowbox</div><ul class="st full">
 <li><i id="s-br"></i>{L("Brücke")}<span id="s-brt"></span></li><li><i id="s-s4"></i>S4<span id="s-s4t"></span></li>
 <li><i id="s-app"></i>App<span id="s-appt"></span></li><li><i id="s-bat"></i>{L("Akku")}<span id="s-batt"></span></li></ul></div></section>
 </main><div class="hint" id="hint">{L("Zur Seite wischen für weitere Ansichten")}</div>

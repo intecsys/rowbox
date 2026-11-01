@@ -2,7 +2,7 @@
 
 ## Unreleased
 - Lite (no battery: `setup.sh --no-pisugar`) and Ultralight (no display, no battery: `setup.sh --no-display --no-pisugar`) versions; without display, setup prints the portal password and the portal hides display settings (experimental)
-- Phone as display: `/display` (or `/anzeige`) shows the box's screens full-screen on the phone, swipeable: training, force curve, pacer, live wave, journey, status; linked from the Live page and in the menu
+- Phone as display: `/display` (or `/anzeige`) shows the box's screens full-screen on the phone, laid out for portrait and swipeable: training, force curve (last five strokes), pacer (vertical seat), live wave, journey (upcoming stops as a vertical route), status; linked from the Live page and in the menu
 - Wi-Fi messages in the portal no longer refer to the display
 - README: compatibility tables for apps and rowing machines; corrected S4 firmware info (USB monitors run 2.01/2.03/2.1; check with advanced ×9, OK)
 
