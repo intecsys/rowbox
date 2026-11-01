@@ -199,14 +199,52 @@ export function start(el, state) {
 
   // ---------- Fahrt ----------
   let pos = null, speed = 0, last = performance.now(), running = false, stopsKey = "";
-  function phaseOf(S, W, now) {
-    // Schlagphase 0..1 aus dem letzten Zuganfang; Anteil Zug aus Zug- und Rollzeit
-    const ago = (W.catch_ago || []).length ? Math.min(...W.catch_ago) + (Date.now() / 1000 - (W.ts || 0)) : null;
-    const period = W.period || (S.drive && S.recover ? S.drive + S.recover : 2.8);
-    const drive = S.drive && S.recover ? S.drive / (S.drive + S.recover) : 1 / 3;
-    if (!S.active || ago == null || ago > period * 1.6) return { p: drive, drive, idle: true };
-    return { p: (ago / period) % 1, drive, idle: false };
+
+  // Eigene, gleichmaessige Schlaguhr: laeuft mit der Schlagdauer weiter und wird bei jedem
+  // erkannten Zuganfang sanft nachgezogen (wie der Taktgeber), damit nichts springt.
+  const clock = { phase: 0, period: 2.8, lastCatch: 0, warm: 0, idle: 1, curve: null, cum: null };
+  function stroke(S, W, dt) {
+    const now = performance.now() / 1000;
+    const target = W.period || (S.drive && S.recover ? S.drive + S.recover : clock.period);
+    clock.period += (Math.min(6, Math.max(1.2, target)) - clock.period) * Math.min(1, dt * 0.8);
+    clock.phase = (clock.phase + dt / clock.period) % 1;
+    const age = Date.now() / 1000 - (W.ts || 0);
+    for (const ago of W.catch_ago || []) {
+      const c = now - ago - age;                       // Zeitpunkt des Zuganfangs in unserer Uhr
+      if (c <= clock.lastCatch + 0.6 * clock.period) continue;
+      const anchor = ((now - c) / clock.period) % 1;
+      if (clock.warm < 1 || c - clock.lastCatch > 8) clock.phase = anchor;
+      else clock.phase = (clock.phase - 0.35 * (((clock.phase - anchor + 0.5) % 1 + 1) % 1 - 0.5) + 1) % 1;
+      clock.warm++;
+      clock.lastCatch = c;
+    }
+    // Ruhen: ohne Ruderei langsam in die Endzug-Haltung gleiten
+    const rowing = S.active && clock.lastCatch && now - clock.lastCatch < clock.period * 1.8;
+    clock.idle += ((rowing ? 0 : 1) - clock.idle) * Math.min(1, dt * 1.5);
+    // Kraftkurve des letzten Zugs: kumulierte Kraft = wie weit der Griff im Zug schon ist
+    if (S.curve && S.curve !== clock.curve) {
+      clock.curve = S.curve;
+      const f = S.curve.map(v => Math.max(0, v)), tot = f.reduce((a, b) => a + b, 0) || 1;
+      let acc = 0;
+      clock.cum = f.map(v => (acc += v) / tot);
+    }
+    return S.drive && S.recover ? S.drive / (S.drive + S.recover) : 1 / 3;
   }
+  const ease = t => t * t * (3 - 2 * t);
+  const sstep = (a, b, t) => ease(Math.min(1, Math.max(0, (t - a) / (b - a))));
+  function along(cum, t) {                              // Anteil des Zugwegs nach Zeitanteil t
+    if (!cum) return ease(t);
+    const x = t * (cum.length - 1), i = Math.floor(x), k = x - i;
+    const a = i > 0 ? cum[i - 1] : 0, b = cum[Math.min(i, cum.length - 1)];
+    return a + (b - a) * k;
+  }
+  function force(curve, t) {                            // Kraft 0..1 im Zug, fuer den Schub des Boots
+    if (!curve) return Math.sin(t * Math.PI);
+    const x = t * (curve.length - 1), i = Math.floor(x), k = x - i;
+    const a = curve[i] || 0, b = curve[Math.min(i + 1, curve.length - 1)] || 0;
+    return (a + (b - a) * k) / 100;
+  }
+  const pose = { seat: 0, torso: 0, oar: 0, lift: 0 };
 
   function frame(now) {
     if (!running) return;
@@ -217,9 +255,12 @@ export function start(el, state) {
     if (!G) return;
     const target = G.km * 1000;
     if (pos == null || Math.abs(pos - target) > 300) pos = target;
+    const D = stroke(S, W, dt), p = clock.phase, inDrive = p < D;
     const want = S.active && S.pace ? 500 / S.pace : 0;
     speed += (want - speed) * Math.min(1, dt * (want > speed ? 1.2 : 0.35));
-    pos += speed * dt + (target - pos) * dt * 0.05;     // sanft am Wert der Box halten
+    // Schub aus der Kraftkurve: im Zug etwas schneller, im Vorrollen etwas langsamer
+    const surge = clock.idle > 0.5 ? 1 : inDrive ? 1 + 0.22 * (force(clock.curve, p / D) - 0.45) : 0.94;
+    pos += speed * surge * dt + (target - pos) * dt * 0.05;     // sanft am Wert der Box halten
 
     const key = (G.stops || []).map(x => x[0]).join(",");
     if (key !== stopsKey) { for (const g of chunks.values()) { scene.remove(g); dispose(g); } chunks.clear(); stopsKey = key; }
@@ -232,20 +273,27 @@ export function start(el, state) {
     boat.position.set(x, 0.05, -pos);
     boat.rotation.y = -Math.atan2(ahead - x, 6);
 
-    // Ruderbewegung: im Zug schnell nach hinten, im Vorrollen langsam nach vorn
-    const ph = phaseOf(S, W, now), p = ph.p, D = ph.drive;
-    const t = p < D ? p / D : 1 - (p - D) / (1 - D);                 // 0 = Auslage, 1 = Endzug
-    const e = 0.5 - 0.5 * Math.cos(t * Math.PI);
-    seat.position.z = 0.35 - e * 0.7;
-    torso.rotation.x = 0.45 - e * 0.85;
+    // Ruderbewegung aus der Kraftkurve: Der Griffweg folgt der aufsummierten Kraft des letzten Zugs.
+    // Zug: erst Beine, dann Oberkoerper; Vorrollen: erst Oberkoerper, dann Beine, gleichmaessig.
+    let e;
+    if (inDrive) e = along(clock.cum, p / D);
+    else e = 1 - ease((p - D) / (1 - D));
+    e = e * (1 - clock.idle) + 1 * clock.idle;         // ohne Rudern: Endzug-Haltung, Blaetter flach
+    const legs = inDrive ? sstep(0, 0.65, e) : sstep(0.25, 1, e);
+    const swing = inDrive ? sstep(0.3, 1, e) : sstep(0, 0.6, e);
+    const k = Math.min(1, dt * 18);                     // letzte Glaettung gegen Ruckler
+    pose.seat += (0.35 - legs * 0.7 - pose.seat) * k;
+    pose.torso += (0.45 - swing * 0.85 - pose.torso) * k;
+    pose.oar += (0.75 - e * 1.45 - pose.oar) * k;
+    pose.lift += ((inDrive && clock.idle < 0.5 ? 1 : 0) - pose.lift) * Math.min(1, dt * 14);
+    seat.position.z = pose.seat;
+    torso.rotation.x = pose.torso;
     for (const o of oars) {
-      o.pivot.rotation.y = o.side * (0.75 - e * 1.45);
-      const inWater = p < D && !ph.idle;
-      o.pivot.rotation.z = o.side * (inWater ? -0.06 : 0.1);
-      o.blade.rotation.x = inWater ? 0 : Math.PI / 2.4;
+      o.pivot.rotation.y = o.side * pose.oar;
+      o.pivot.rotation.z = o.side * (0.1 - 0.16 * pose.lift);
+      o.blade.rotation.x = (1 - pose.lift) * Math.PI / 2.4;
     }
 
-    // Kamera schraeg hinter dem Boot
     // Kamera genau hinter dem Boot, in seiner Fahrtrichtung
     const fx = (ahead - x) / Math.hypot(ahead - x, 6), fz = -6 / Math.hypot(ahead - x, 6);
     camera.position.set(x - fx * 9.5 + 0.25, 2.5, -pos - fz * 9.5);
