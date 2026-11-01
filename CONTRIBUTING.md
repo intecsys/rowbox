@@ -26,6 +26,9 @@ S4 monitor --USB (CDC serial)--> rowbridge.py --Bluetooth FTMS--> fitness app
   are the way back.
 - **`rowgame.py`** journeys and trophies, **`rowexport.py`** FIT/TCX, **`rowtext.py`** translations.
 
+Everything we know about the S4 itself (protocol, firmware, hardware) is in
+[docs/s4-notes.md](docs/s4-notes.md).
+
 ## Develop without a rowing machine
 
 ```sh

@@ -174,6 +174,8 @@ S4-Monitor --USB seriell--> rowbridge.py --Bluetooth FTMS--> App
 rowportal.py: Webportal auf Port 80, Hotspot als Rückfall, Einstellungen in /etc/rowbox.json
 ```
 
+Mehr zum S4 selbst (Protokoll, Firmware, Hardware): [docs/s4-notes.md](docs/s4-notes.md) (Englisch).
+
 ## Verwandte Projekte
 
 - [PiRowFlo](https://github.com/inonoob/pirowflo): S4/SmartRow nach BLE und ANT+ auf dem Raspberry Pi

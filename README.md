@@ -172,7 +172,8 @@ rowportal.py: web portal on port 80, Wi-Fi hotspot fallback, settings in /etc/ro
 ```
 
 The S4 USB protocol is documented by WaterRower ("Water Rower S4 S5 USB Protocol Iss 1 04")
-and in several open source projects.
+and in several open source projects. More on the S4 (protocol details, firmware, hardware):
+[docs/s4-notes.md](docs/s4-notes.md).
 
 ## Related projects
 
