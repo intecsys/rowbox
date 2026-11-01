@@ -506,6 +506,19 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--mute);margin:0}
 .msg{padding:12px 14px;border-radius:8px;border:1.5px solid var(--ink);background:var(--panel);margin-bottom:12px}
 .msg.err{border-color:var(--signal)}
 .row{display:flex;gap:8px}.row>*{flex:1}
+/* Haekchen und Farbwahl als Tasten im Stil der Box */
+.checks label{display:flex;gap:12px;align-items:center;margin:10px 0;font-size:15px;cursor:pointer}
+input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:none;width:22px;height:22px;margin:0;padding:0;
+border:1.5px solid var(--ink);border-radius:5px;background:var(--key);box-shadow:0 2px 0 var(--ink);
+display:inline-grid;place-content:center;cursor:pointer}
+input[type=checkbox]:checked{background:var(--ink)}
+input[type=checkbox]:checked::after{content:"";width:10px;height:5px;border:2.5px solid var(--chassis);
+border-top:0;border-right:0;transform:translate(0,-1px) rotate(-45deg)}
+input[type=checkbox]:disabled{opacity:.45;cursor:default}
+input[type=color]{-webkit-appearance:none;appearance:none;height:48px;padding:5px;border:1.5px solid var(--ink);
+border-radius:7px;background:var(--key);box-shadow:0 2px 0 var(--ink);cursor:pointer}
+input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+input[type=color]::-webkit-color-swatch{border:0;border-radius:4px}input[type=color]::-moz-color-swatch{border:0;border-radius:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}nav a,button{transform:none!important}}
 """
 
@@ -1455,15 +1468,14 @@ def route_opts():
 
 def journey_checks(conf):
     on = conf.get("journey_show") or [k for k, _ in JOURNEY_PARTS]
-    return "".join(f'<label style="display:flex;gap:10px;align-items:center;margin:6px 0">'
-                   f'<input type="checkbox" name="j_{k}" value="1" style="width:auto;margin:0" '
-                   f'{"checked" if k in on else ""}>{L(name)}</label>' for k, name in JOURNEY_PARTS)
+    return "".join(f'<label><input type="checkbox" name="j_{k}" value="1" {"checked" if k in on else ""}>{L(name)}</label>'
+                   for k, name in JOURNEY_PARTS)
 
 
 def color_field(key, label, conf):
     val = conf.get(key) or DEFAULTS[key]
-    return (f'<label class="dim" style="display:flex;flex-direction:column;gap:2px">{label}'
-            f'<input type="color" name="{key}" value="{e(val)}" style="height:44px;padding:3px;margin:4px 0 8px"></label>')
+    return f'<div><label class="dim">{label}</label><input type="color" name="{key}" value="{e(val)}"></div>'
+
 
 
 def view_checks(conf):
@@ -1471,10 +1483,9 @@ def view_checks(conf):
     rows = []
     for k, name in VIEW_CHOICES:
         fixed = k == "info"
-        rows.append(f'<label style="display:flex;gap:10px;align-items:center;margin:6px 0">'
-                    f'<input type="checkbox" name="v_{k}" value="1" style="width:auto;margin:0" '
+        rows.append(f'<label><input type="checkbox" name="v_{k}" value="1" '
                     f'{"checked" if k in on or fixed else ""} {"disabled" if fixed else ""}>{L(name)}</label>')
-    return "".join(rows)
+    return '<div class="checks">' + "".join(rows) + "</div>"
 
 
 def settings_page(conf, msg=""):
@@ -1507,11 +1518,12 @@ def settings_page(conf, msg=""):
 <label class="dim">{L("Strecke (ein Wechsel beginnt eine neue Reise bei 0 km)")}</label><select name="route">{route_opts()}</select>
 <label class="dim">{L("Echtes Wetter in der 3D-Ansicht (holt die Box bei Open-Meteo, wenn sie online ist)")}</label><select name="weather">
 <option value="1" {sel("weather", True)}>{L("an")}</option><option value="0" {sel("weather", False)}>{L("aus")}</option></select>
-<h3 style="font-size:14px;margin:14px 0 4px">{L("Reise-Ansicht auf dem Handy")}</h3>
-<p class="dim" style="margin:0 0 4px;font-size:13px">{L("Welche Elemente die Reise-Ansicht zeigt.")}</p>
-{journey_checks(conf)}
-<h3 style="font-size:14px;margin:14px 0 4px">{L("Farben im 3D-Boot")}</h3>
-<div class="row colors">{color_field("boat_hull", L("Skiff"), conf)}{color_field("boat_blade", L("Ruderblätter"), conf)}{color_field("boat_shirt", L("Trikot"), conf)}</div></div>
+</div>
+<div class="card"><h2>{L("Reise-Ansicht auf dem Handy")}</h2>
+<p class="dim">{L("Welche Elemente die Reise-Ansicht zeigt.")}</p>
+<div class="checks">{journey_checks(conf)}</div></div>
+<div class="card"><h2>{L("Farben im 3D-Boot")}</h2>
+<div class="row">{color_field("boat_hull", L("Skiff"), conf)}{color_field("boat_blade", L("Ruderblätter"), conf)}{color_field("boat_shirt", L("Trikot"), conf)}</div></div>
 """ + (f"""<div class="card"><h2>{L("Ansichten auf dem Display")}</h2>
 <p class="dim">{L("Welche Ansichten die Display-Taste durchblättert. Die Automatik ist immer dabei, Info auch (dort steht das Passwort).")}</p>
 {view_checks(conf)}</div>
