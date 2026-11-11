@@ -31,7 +31,7 @@ rudern.
 | **Zeigt** | Live-Werte, Kraftkurve, Taktgeber und Reise auf dem Display der Box, im Browser und im Vollbild auf Handy oder Tablet |
 | **Zeichnet auf** | Jede Einheit im Logbuch mit Sekundenwerten, Export als FIT, TCX, CSV oder JSON für Strava, Garmin Connect, Intervals.icu |
 | **Motiviert** | Reisen auf echten Strecken, ein 3D-Rhein von Basel bis Rotterdam mit echtem Gelände, Landmarken und Wetter, entspannte Trophäen |
-| **Läuft** | Auf einem Raspberry Pi Zero 2 W, mit oder ohne Akku und Display, auf Wunsch ganz ohne Internet |
+| **Läuft** | Auf einem Raspberry Pi Zero 2 W (Ultralight auch auf dem Pi 3 B), mit oder ohne Akku und Display, auf Wunsch ganz ohne Internet |
 | **Kostet** | Etwa 35–100 € für die Teile, je nach [Variante](#varianten) |
 
 ## Inhalt
@@ -182,8 +182,10 @@ OpenStreetMap-Daten eine Streckendatei (siehe [CONTRIBUTING](CONTRIBUTING.md), a
 | Teilekosten (ca.) | 100 € | 70 € | 35 € |
 | Installation | `setup.sh` | `setup.sh --no-pisugar` | `setup.sh --no-display --no-pisugar` |
 
-Light und Ultralight sind neu und noch nicht an einer echten Box getestet; Rückmeldungen sind
-willkommen. Ohne PiSugar die Box vor dem Ausstecken im Webportal ausschalten.
+**Andere Pis:** Ultralight hat ein Nutzer auf einem **Raspberry Pi 3 Model B** installiert, sie
+läuft dort ohne Probleme. Andere Modelle mit Bluetooth und WLAN sollten ebenfalls gehen, sind aber
+nicht getestet; Rückmeldungen sind willkommen. Light ist noch nicht an einer echten Box getestet.
+Ohne PiSugar die Box vor dem Ausstecken im Webportal ausschalten.
 
 ### Teileliste
 

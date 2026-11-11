@@ -30,7 +30,7 @@ stroke and lets you row real rivers.
 | **Shows** | Live values, force curve, pacer and journey on the box display, in the browser and full-screen on a phone or tablet |
 | **Records** | Every session in a logbook with per-second data, export as FIT, TCX, CSV or JSON for Strava, Garmin Connect, Intervals.icu |
 | **Motivates** | Journeys along real routes, a 3D Rhine from Basel to Rotterdam with real terrain, landmarks and weather, relaxed trophies |
-| **Runs** | On a Raspberry Pi Zero 2 W, with or without battery and display, entirely offline if you like |
+| **Runs** | On a Raspberry Pi Zero 2 W (Ultralight also on a Pi 3 B), with or without battery and display, entirely offline if you like |
 | **Costs** | About 35–100 € in parts, depending on the [version](#versions) |
 
 ## Contents
@@ -179,8 +179,10 @@ route file (see [CONTRIBUTING](CONTRIBUTING.md)).
 | Parts cost (approx.) | 100 € | 70 € | 35 € |
 | Install | `setup.sh` | `setup.sh --no-pisugar` | `setup.sh --no-display --no-pisugar` |
 
-Light and Ultralight are new and not yet tested on a real box; feedback welcome. Without the
-PiSugar, shut the box down in the web portal before unplugging it.
+**Other Pis:** Ultralight has been installed by a user on a **Raspberry Pi 3 Model B** and runs
+without problems. Other models with Bluetooth and Wi-Fi should work too but are untested; reports
+are welcome. Light has not been tested on a real box yet. Without the PiSugar, shut the box down in
+the web portal before unplugging it.
 
 ### Parts
 
