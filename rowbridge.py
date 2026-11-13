@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 The Rowbox authors
 """rowbridge: WaterRower S4 (USB) -> Bluetooth FTMS Rudergeraet, mit Logbuch."""
-import json, os, queue, struct, sys, threading, time
+import json, os, queue, signal, struct, sys, threading, time
 from collections import deque
 import dbus, dbus.service, dbus.mainloop.glib, serial
 from gi.repository import GLib
@@ -605,6 +605,15 @@ def main():
                 f"{v['watts']} W" + ("  [App empfaengt]" if app.rower.notifying else "  [keine App]"))
         return True
 
+    def stop():
+        # systemctl stop/poweroff: laufende Einheit speichern, statt sie beim Neustart zu verwerfen
+        if book.cur:
+            log("Beenden: laufende Einheit wird gespeichert")
+        book.close()
+        loop.quit()
+        return False
+
+    GLib.unix_signal_add(GLib.PRIORITY_HIGH, signal.SIGTERM, stop)
     GLib.timeout_add(100, lambda: write_wave(s4) or True)
     GLib.timeout_add(1000, push)
     try:
