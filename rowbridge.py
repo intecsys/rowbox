@@ -41,7 +41,7 @@ DIS = UUID("180a")                     # Geraeteinformation (Hersteller, Modell,
 REG = {"055": ("dist", "D", 16), "140": ("strokes", "D", 16), "1A9": ("spm", "S", 16),
        "14A": ("cmps", "D", 16), "08A": ("cal", "T", 16),
        "1E1": ("sec", "S", 10), "1E2": ("min", "S", 10), "1E3": ("hr", "S", 10),
-       "1A0": ("bpm", "D", 16)}       # Puls, nur mit Pulsempfaenger am S4, sonst 0
+       "1A0": ("bpm", "S", 16)}       # Puls (ein Byte, Protokoll S. 20), nur mit Pulsempfaenger, sonst 0
 WATT = "088"                           # wird oefter abgefragt, steht nur kurz pro Schlag an
 LEN = {"S": 2, "D": 4, "T": 6}
 OPS = {0x00: "Kontrolle anfordern", 0x01: "Reset", 0x07: "Start/Fortsetzen", 0x08: "Stopp/Pause"}
@@ -247,6 +247,7 @@ class S4(threading.Thread):
         self.v = {n: 0 for n, _, _ in REG.values()} | {"watts": 0}
         self.stroke_at = 0.0
         self.strokes_seen = False
+        self.dist_raw, self.dist_wrap = 0, 0   # S4-Distanz ist 16 Bit: nach 65.535 m wieder 0
         self.fw = None                     # Modell und Firmware aus "IV?", z. B. "S4 2.10"
         self.raw, self.raw_check = None, 0.0   # offene Rohdaten-Datei
         self.analyzer = rowstroke.Analyzer()   # Kraftkurve aus den Sensorimpulsen
@@ -305,6 +306,7 @@ class S4(threading.Thread):
         return time.time() - self.stroke_at < IDLE
 
     def reset(self):
+        self.dist_wrap = 0
         self.cmds.put("RESET")
 
     def parse(self, line):
@@ -348,7 +350,16 @@ class S4(threading.Thread):
                 fresh = 0 < val - self.v["strokes"] <= 3 and self.strokes_seen
                 self.stroke_at = time.time() if fresh else 0.0
             if name == "strokes":
+                if val < self.v["strokes"]:            # S4 zurueckgesetzt: kein Ueberlauf mehr
+                    self.dist_wrap = 0
+                    self.v["dist"] = self.dist_raw
                 self.strokes_seen = True
+            if name == "dist":
+                if self.dist_raw >= 64000 and val < 2000:   # Ueberlauf, kein Reset
+                    self.dist_wrap += 65536
+                    log(f"S4-Distanz ueber 65.535 m, zaehle weiter ({self.dist_wrap // 65536})")
+                self.dist_raw = val
+                val += self.dist_wrap
             self.v[name] = val
 
     def run(self):
@@ -455,8 +466,8 @@ class App(dbus.service.Object):
             c = Char(bus, self.dis, short, ["read"], "Geraeteinfo")
             c.set(text.encode())
             self.info.append(c)
-        # Features: Distanz, Pace, Energie, Zeit, Leistung
-        self.feature.set(struct.pack("<II", 0x5224, 0))
+        # Features: Distanz, Pace, Energie, Puls (Bit 10), Zeit, Leistung
+        self.feature.set(struct.pack("<II", 0x5624, 0))
         self.training.set(b"\x00\x01")             # Idle
         self.was_active = False
 

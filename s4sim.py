@@ -64,7 +64,7 @@ def value(addr):
         "1E3": f"{secs // 3600:02d}",
         "142": f"{int(60 / SPM * 25):02X}",       # Einheit beim echten S4 noch unklar
         "143": f"{int(60 / SPM * 0.35 * 25):02X}",
-        "1A0": f"{(118 + int(now) % 10) if on and PULSE else 0:04X}",
+        "1A0": f"{(118 + int(now) % 10) if on and PULSE else 0:02X}",   # ein Byte wie beim S4
     }
     return vals.get(addr)
 
