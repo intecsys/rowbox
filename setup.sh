@@ -119,14 +119,15 @@ raspi-config nonint do_i2c 0; check $? "$(T "I2C an" "I2C on")"
 raspi-config nonint do_spi 0; check $? "$(T "SPI an" "SPI on")"
 
 step "3b $(T "WLAN-Fix für gemischte WPA2/WPA3-Netze" "Wi-Fi fix for mixed WPA2/WPA3 networks") (raspberrypi/linux #7634)"
-CMD=/boot/firmware/cmdline.txt
+CMD=/boot/firmware/cmdline.txt; [ -f "$CMD" ] || CMD=/boot/cmdline.txt   # Bookworm / Bullseye
+cp -n "$CMD" "$CMD.rowbox-bak"
 if grep -q "brcmfmac.feature_disable=" "$CMD"; then
     sed -i 's/brcmfmac\.feature_disable=[^ ]*/brcmfmac.feature_disable=0x2282000/' "$CMD"
 else
     sed -i '1 s/$/ brcmfmac.feature_disable=0x2282000/' "$CMD"
 fi
 [ "$(wc -l < "$CMD")" -le 1 ] && grep -q "feature_disable=0x2282000" "$CMD"
-check $? "$(T "WLAN-Fix in $CMD (wirkt nach Neustart)" "Wi-Fi fix in $CMD (active after reboot)")"
+check $? "$(T "WLAN-Fix in $CMD (wirkt nach Neustart, Sicherung: $CMD.rowbox-bak)" "Wi-Fi fix in $CMD (active after reboot, backup: $CMD.rowbox-bak)")"
 
 step "4/6 PiSugar 3"
 if [ $PISUGAR -eq 1 ]; then
