@@ -218,8 +218,8 @@ Stromanschluss.
    sudo reboot
    ```
    Das richtet Brücke, Anzeige und Portal als Dienste ein, dazu die PiSugar-Werkzeuge, den
-   Whisplay-Treiber (baut ein Kernelmodul, dauert eine Weile) und den WLAN-Fix für gemischte
-   WPA2/WPA3-Router.
+   Whisplay-Treiber (baut ein Kernelmodul, dauert eine Weile) und auf dem Zero 2 W den WLAN-Fix
+   für gemischte WPA2/WPA3-Router.
 4. Nach dem Neustart startet der Einrichtungsassistent auf dem Display. Das Passwort fürs Portal
    steht außerdem unter **Info**.
 
@@ -318,8 +318,10 @@ ist die Rowbox verbunden, zeigt der S4 „PC“. Mehr dazu: [docs/s4-notes.md](d
 - **PiSugar-Download langsam:** Der Paketserver von PiSugar ist aus Europa teils langsam. Abwarten.
 - **WLAN an Routern im gemischten Modus WPA2/WPA3:** Mit dem aktuellen Raspberry Pi OS verbindet
   sich der Zero 2 W nicht damit ([raspberrypi/linux#7634](https://github.com/raspberrypi/linux/issues/7634)).
-  `setup.sh` behebt das, indem es `brcmfmac.feature_disable=0x2282000` in
-  `/boot/firmware/cmdline.txt` einträgt; zu tun ist nichts. Getestet mit Kernel 6.18.
+  Auf dem Zero 2 W behebt `setup.sh` das, indem es `brcmfmac.feature_disable=0x2282000` in
+  `cmdline.txt` einträgt (mit Sicherungskopie); zu tun ist nichts. Getestet mit Kernel 6.18.
+  Andere Modelle bleiben unverändert; hat deines dasselbe Problem, `setup.sh` mit `--wifi-fix`
+  starten (oder den Fix mit `--no-wifi-fix` auslassen).
 - **Die Box heißt anders:** Nimm den Hostnamen, den du im Raspberry Pi Imager vergeben hast, zum
   Beispiel `http://rower.local`.
 - **LED und Display werden absichtlich nicht gedimmt:** Die Whisplay-Bibliothek dimmt per Software,

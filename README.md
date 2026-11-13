@@ -214,7 +214,8 @@ The S4 goes into the **inner** Micro-USB port of the Zero (labelled USB), not th
    sudo reboot
    ```
    This installs the bridge, display and portal as services, the PiSugar tools, the Whisplay
-   driver (builds a kernel module, takes a while) and the Wi-Fi fix for mixed WPA2/WPA3 routers.
+   driver (builds a kernel module, takes a while) and, on the Zero 2 W, the Wi-Fi fix for mixed
+   WPA2/WPA3 routers.
 4. After the reboot the setup assistant starts on the display. The portal password is also on the
    **Info** screen.
 
@@ -312,8 +313,10 @@ S4; while Rowbox is connected the S4 shows "PC". Details: [docs/s4-notes.md](doc
 - **PiSugar download is slow:** the PiSugar package server can be slow from Europe. Just wait.
 - **Wi-Fi with WPA2/WPA3 mixed-mode routers:** with current Raspberry Pi OS the Zero 2 W cannot
   connect to them ([raspberrypi/linux#7634](https://github.com/raspberrypi/linux/issues/7634)).
-  `setup.sh` fixes this by adding `brcmfmac.feature_disable=0x2282000` to
-  `/boot/firmware/cmdline.txt`; nothing to do. Tested with kernel 6.18.
+  On the Zero 2 W, `setup.sh` fixes this by adding `brcmfmac.feature_disable=0x2282000` to
+  `cmdline.txt` (with a backup); nothing to do. Tested with kernel 6.18. Other models are left
+  alone; if yours has the same problem, run `setup.sh` with `--wifi-fix` (or skip the fix with
+  `--no-wifi-fix`).
 - **The box is reachable under a different name:** use the hostname you set in Raspberry Pi
   Imager, e.g. `http://rower.local`.
 - **LED and backlight are not dimmed on purpose:** the Whisplay library dims them in software,

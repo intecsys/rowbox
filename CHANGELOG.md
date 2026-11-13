@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- setup.sh detects the Pi model: the Wi-Fi fix for WPA2/WPA3 routers is applied only on the Pi Zero 2 W (force with `--wifi-fix`, skip with `--no-wifi-fix`); on a Pi 3, Wi-Fi power saving is turned off so live pages don't stutter (thanks @RhythmDevice, #1)
 - Heart rate from the S4 is read as one byte, as in WaterRower's protocol; before, a receiver's pulse could be dropped. FTMS now announces heart-rate support (thanks @RhythmDevice, #1)
 - Sessions longer than 65,535 m keep counting instead of splitting in two (the S4's distance register is 16-bit) (thanks @RhythmDevice, #1)
 - setup.sh installs a fixed revision of the Whisplay driver, so every new box gets the same version

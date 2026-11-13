@@ -6,17 +6,22 @@
 #                               sudo bash setup.sh --lang de  (Deutsch)  /  --lang en (English)
 # Without Whisplay display:     sudo bash setup.sh --no-display     (bridge and web portal only)
 # Without PiSugar 3:            sudo bash setup.sh --no-pisugar     (USB power bank or power supply)
+# Wi-Fi fix for WPA2/WPA3:      automatic on the Pi Zero 2 W; force with --wifi-fix, skip with --no-wifi-fix
 set -u
 cd "$(dirname "$0")"
 
 LNG="${ROWBOX_LANG:-}"
 DISPLAY_HW=1
 PISUGAR=1
+WIFI_FIX=auto
+WIFI_FIX_ARG=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --lang) LNG="${2:-}"; shift ;;
         --no-display) DISPLAY_HW=0 ;;
         --no-pisugar) PISUGAR=0 ;;
+        --wifi-fix) WIFI_FIX=1; WIFI_FIX_ARG=1 ;;
+        --no-wifi-fix) WIFI_FIX=0; WIFI_FIX_ARG=1 ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
     shift
@@ -119,15 +124,35 @@ raspi-config nonint do_i2c 0; check $? "$(T "I2C an" "I2C on")"
 raspi-config nonint do_spi 0; check $? "$(T "SPI an" "SPI on")"
 
 step "3b $(T "WLAN-Fix für gemischte WPA2/WPA3-Netze" "Wi-Fi fix for mixed WPA2/WPA3 networks") (raspberrypi/linux #7634)"
-CMD=/boot/firmware/cmdline.txt; [ -f "$CMD" ] || CMD=/boot/cmdline.txt   # Bookworm / Bullseye
-cp -n "$CMD" "$CMD.rowbox-bak"
-if grep -q "brcmfmac.feature_disable=" "$CMD"; then
-    sed -i 's/brcmfmac\.feature_disable=[^ ]*/brcmfmac.feature_disable=0x2282000/' "$CMD"
-else
-    sed -i '1 s/$/ brcmfmac.feature_disable=0x2282000/' "$CMD"
+MODEL="$(tr -d '\0' < /proc/device-tree/model 2>/dev/null)"
+echo "$(T Modell Model): ${MODEL:-?}"
+if [ "$WIFI_FIX" = auto ]; then              # Fehler bekannt beim Zero 2 W; andere Modelle bei Bedarf mit --wifi-fix
+    case "$MODEL" in *"Zero 2"*) WIFI_FIX=1 ;; *) WIFI_FIX=0 ;; esac
 fi
-[ "$(wc -l < "$CMD")" -le 1 ] && grep -q "feature_disable=0x2282000" "$CMD"
-check $? "$(T "WLAN-Fix in $CMD (wirkt nach Neustart, Sicherung: $CMD.rowbox-bak)" "Wi-Fi fix in $CMD (active after reboot, backup: $CMD.rowbox-bak)")"
+CMD=/boot/firmware/cmdline.txt; [ -f "$CMD" ] || CMD=/boot/cmdline.txt   # Bookworm / Bullseye
+if [ "$WIFI_FIX" = 1 ]; then
+    [ -f "$CMD.rowbox-bak" ] || cp "$CMD" "$CMD.rowbox-bak"   # erste, unberuehrte Fassung behalten
+    if grep -q "brcmfmac.feature_disable=" "$CMD"; then
+        sed -i 's/brcmfmac\.feature_disable=[^ ]*/brcmfmac.feature_disable=0x2282000/' "$CMD"
+    else
+        sed -i '1 s/$/ brcmfmac.feature_disable=0x2282000/' "$CMD"
+    fi
+    [ "$(wc -l < "$CMD")" -le 1 ] && grep -q "feature_disable=0x2282000" "$CMD"
+    check $? "$(T "WLAN-Fix in $CMD (wirkt nach Neustart, Sicherung: $CMD.rowbox-bak)" "Wi-Fi fix in $CMD (active after reboot, backup: $CMD.rowbox-bak)")"
+elif [ "$WIFI_FIX_ARG" = 1 ]; then
+    T "Übersprungen (--no-wifi-fix)." "Skipped (--no-wifi-fix)."
+elif grep -q "brcmfmac.feature_disable=" "$CMD"; then
+    T "Nicht nötig für dieses Modell; vorhandener Eintrag in $CMD bleibt." "Not needed on this model; existing entry in $CMD is kept."
+else
+    T "Nicht nötig für dieses Modell (erzwingen mit --wifi-fix)." "Not needed on this model (force with --wifi-fix)."
+fi
+# Pi 3: WLAN-Energiesparen aus, sonst kommen Antworten verzoegert und gebuendelt (Live-Seiten ruckeln)
+case "$MODEL" in *"Pi 3"*)
+    if [ -d /etc/NetworkManager/conf.d ]; then
+        printf '[connection]\nwifi.powersave = 2\n' > /etc/NetworkManager/conf.d/rowbox-wifi-powersave.conf
+        check $? "$(T "WLAN-Energiesparen aus (Pi 3, wirkt nach Neustart)" "Wi-Fi power saving off (Pi 3, active after reboot)")"
+    fi ;;
+esac
 
 step "4/6 PiSugar 3"
 if [ $PISUGAR -eq 1 ]; then
