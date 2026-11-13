@@ -75,6 +75,20 @@ UI texts are written in German inside `L("…")`; the English translation goes i
 `rowtext.py`. Run `python3 rowtext.py` before committing: it lists every text without a
 translation.
 
+## Third-party versions
+
+`setup.sh` installs vendor code as root, so new boxes get fixed, tried versions instead of the
+latest one:
+
+| Component | Source | Pinned in `setup.sh` |
+|---|---|---|
+| Whisplay driver | [PiSugar/Whisplay](https://github.com/PiSugar/Whisplay) | `WHISPLAY_REV` (2026-10-30) |
+| PiSugar power manager | cdn.pisugar.com installer | not pinned yet |
+
+Existing boxes keep what they have; an update does not touch these. To move to a newer version,
+read the vendor's changes, install it on a real box, and only then bump the pin in a pull request
+that says what the new version fixes or adds.
+
 ## Pull requests
 
 - Keep them small and focused; describe what you tested (real S4 or simulator, which app).
