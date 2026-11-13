@@ -22,7 +22,8 @@ S4 monitor --USB (CDC serial)--> rowbridge.py --Bluetooth FTMS--> fitness app
   (estimated from flywheel acceleration plus drag, no extra sensor).
 - **`rowdisplay.py`** (Whisplay display, button, LED, sounds) and **`rowportal.py`** (web portal,
   Wi-Fi/hotspot, settings in `/etc/rowbox.json`) only *read* `state.json`. They never talk to the
-  S4 directly. Small request files in `/run/rowbridge/` (e.g. `hotspot_request`, `key_request`)
+  S4 directly. Small request files in `/run/rowbridge/` (e.g. `hotspot_request`, `key_request`,
+  `reset_request`)
   are the way back.
 - **`rowgame.py`** journeys and trophies, **`rowexport.py`** FIT/TCX, **`rowtext.py`** translations.
 

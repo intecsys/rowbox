@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Bridge saves the running session when the box is shut down (before, up to 90 s were lost) (thanks @RhythmDevice, #1)
+- Bridge restarts together with Bluetooth, so apps find the rower again after a BlueZ restart (thanks @RhythmDevice, #1)
+- `/run/rowbridge/reset_request` lets other programs on the box reset the S4 (thanks @RhythmDevice, #1)
+- setup.sh backs up `cmdline.txt` before the Wi-Fi fix and also finds it on Bullseye (thanks @RhythmDevice, #1)
 - README: Ultralight confirmed on a Raspberry Pi 3 Model B (community report)
 - Phone display as home-screen web app on iPhone: the screen now fills the whole display (no more cut-off top bar or empty band at the bottom), in portrait and landscape
 - Light (no battery: `setup.sh --no-pisugar`) and Ultralight (no display, no battery: `setup.sh --no-display --no-pisugar`) versions; without display, setup prints the portal password and the portal hides display settings (experimental)
