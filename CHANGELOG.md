@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Heart rate from the S4 is read as one byte, as in WaterRower's protocol; before, a receiver's pulse could be dropped. FTMS now announces heart-rate support (thanks @RhythmDevice, #1)
+- Sessions longer than 65,535 m keep counting instead of splitting in two (the S4's distance register is 16-bit) (thanks @RhythmDevice, #1)
+- setup.sh installs a fixed revision of the Whisplay driver, so every new box gets the same version
 - Bridge saves the running session when the box is shut down (before, up to 90 s were lost) (thanks @RhythmDevice, #1)
 - Bridge restarts together with Bluetooth, so apps find the rower again after a BlueZ restart (thanks @RhythmDevice, #1)
 - `/run/rowbridge/reset_request` lets other programs on the box reset the S4 (thanks @RhythmDevice, #1)
