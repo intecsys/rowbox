@@ -21,6 +21,7 @@ TRACKS = "/var/lib/rowbridge/tracks"   # Messpunkte pro Sekunde, eine Datei pro 
 RAW_FLAG = "/var/lib/rowbridge/raw_on" # gibt es die Datei, werden S4-Rohmeldungen aufgezeichnet
 WAVE = "/run/rowbridge/wave.json"      # Radtempo der letzten 6 s fuer Taktgeber und Live-Kurve
 WAVE_ON = "/run/rowbridge/wave_on"     # das Display meldet so, dass es die Daten gerade braucht
+RESET_REQ = "/run/rowbridge/reset_request"  # ein anderes Programm bittet um RESET des S4 (wie per App)
 WAVE_LEN = 240                         # Messwerte = 6 s bei 25 ms
 RAW_DIR = "/var/lib/rowbridge/raw"
 RAW_MAX = 50 * 1024 * 1024             # hoechstens so viel Rohdaten insgesamt
@@ -575,6 +576,13 @@ def main():
 
     def push():
         app.tick()
+        if os.path.exists(RESET_REQ):          # wie der Reset-Befehl einer Fitness-App
+            try:
+                os.remove(RESET_REQ)
+            except OSError:
+                pass
+            log("Reset angefordert (reset_request)")
+            s4.reset()
         state["n"] += 1
         v = s4.v
         strokes = s4.take_strokes()
