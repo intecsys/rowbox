@@ -91,6 +91,8 @@ cat > /etc/systemd/system/rowbridge.service <<EOF
 Description=Rowbox WaterRower S4 Bluetooth bridge
 After=bluetooth.service
 Wants=bluetooth.service
+# BlueZ vergisst GATT-Dienst und Werbung, wenn es neu startet: mit ihm neu starten
+PartOf=bluetooth.service
 
 [Service]
 ExecStartPre=-/usr/sbin/rfkill unblock bluetooth
