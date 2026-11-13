@@ -159,8 +159,12 @@ fi
 
 step "5/6 $(T "Whisplay-Treiber (baut ein Kernelmodul, dauert auf dem Zero eine Weile)" "Whisplay driver (builds a kernel module, takes a while on the Zero)")"
 if [ $DISPLAY_HW -eq 1 ]; then
+    # Feste Version: jede neue Box bekommt denselben Treiberstand (vorhandene Kopien bleiben unberuehrt)
+    WHISPLAY_REV=736975188ebbe146d319e450aad19c218a310611   # 2026-10-30
     if [ ! -d "$HOMEDIR/Whisplay" ]; then
-        sudo -u "$USR" git clone -q --depth 1 https://github.com/PiSugar/Whisplay.git "$HOMEDIR/Whisplay"
+        sudo -u "$USR" git clone -q --filter=blob:none https://github.com/PiSugar/Whisplay.git "$HOMEDIR/Whisplay" \
+            && sudo -u "$USR" git -C "$HOMEDIR/Whisplay" checkout -q "$WHISPLAY_REV"
+        check $? "$(T "Whisplay-Treiber geladen (Stand ${WHISPLAY_REV:0:7})" "Whisplay driver downloaded (revision ${WHISPLAY_REV:0:7})")"
     fi
     ( cd "$HOMEDIR/Whisplay" && echo y | bash script/install_raspberry_pi.sh )
     check $? "$(T Whisplay-Treiber "Whisplay driver")"
